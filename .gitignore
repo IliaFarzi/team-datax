@@ -36,3 +36,7 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+.env
+./app/__pycache__.file
+./app/google_sheets.py
