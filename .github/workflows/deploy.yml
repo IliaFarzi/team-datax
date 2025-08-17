@@ -4,11 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'api/**'
-      - 'Dockerfile'
-      - 'docker-compose.yml'
-
 jobs:
   build_and_push:
     runs-on: ubuntu-latest
