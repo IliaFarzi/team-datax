@@ -8,7 +8,7 @@ langchain-tavily==0.2.11
 langgraph==0.6.5
 
 # FastAPI & web
-fastapi==0.116.1
+fastapi>=0.70.0,<0.71.0 
 uvicorn[standard]==0.35.0
 fastapi-sessions==0.3.2
 fastapi-redis-session==0.2.0
@@ -29,14 +29,14 @@ email-validator==2.2.0
 pydantic==2.11.7
 
 # ML / NLP
-sentence-transformers==3.3.1
-regex==2024.11.6
+sentence-transformers==5.1.0
+regex==2025.7.34
 
 # Google APIs
-google-auth==2.35.0
-google-auth-oauthlib==1.2.1
+google-auth==2.40.3
+google-auth-oauthlib==1.2.2
 google-auth-httplib2==0.2.0
-google-api-python-client==2.154.0
+google-api-python-client==2.179.0
 
 # Storage
-minio==7.2.10
+minio==7.2.16
