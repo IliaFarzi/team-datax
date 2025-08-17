@@ -3,11 +3,11 @@
 # Use official Python 3.12 slim image as base
 FROM python:3.12-slim
 
-# Set the working directory inside the container
-WORKDIR /app
-
 # Copy requirements.txt first (to leverage Docker cache)
 COPY requirements.txt .
+
+# Set the working directory inside the container
+WORKDIR /app
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
