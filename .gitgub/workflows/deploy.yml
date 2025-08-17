@@ -1,4 +1,4 @@
-name: Build and Deploy AI-Agent
+name: Build and Deploy Backend
 
 on:
   push:
@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'api/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
 
 jobs:
   build_and_push:
@@ -23,13 +25,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push image
+      - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          context: ./api
-          file: ./api/Dockerfile
+          context: .
+          file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/ai-agent:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/ai-agent-backend:latest
 
   deploy:
     needs: build_and_push
@@ -41,9 +43,9 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_PRIVATE_KEY }}
-          port: ${{ secrets.VPS_PORT }}
+          port: 32222
           script: |
-            cd /home/ai-agent
-            docker compose -f docker-compose.yml pull
-            docker compose -f docker-compose.yml up -d --no-build
-            echo "🚀 Deployment successful on VPS"
+            cd /home/root/ai-agent
+            docker compose pull
+            docker compose up -d --remove-orphans
+            echo "✅ Deployment successful!"
