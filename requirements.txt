@@ -8,10 +8,10 @@ langchain-tavily==0.2.11
 langgraph==0.6.5
 
 # FastAPI & web
-fastapi>=0.70.0,<0.71.0 
+fastapi>==0.116.1
 uvicorn[standard]==0.35.0
-fastapi-sessions==0.3.2
-fastapi-redis-session==0.2.0
+fastapi-sessions
+fastapi-redis-session
 
 # Auth & security
 python-jose==3.5.0
