@@ -6,6 +6,9 @@ FROM python:3.12-slim
 # Set the working directory inside the container
 WORKDIR /app
 
+# Update pip
+RUN pip install --upgrade pip
+
 # Copy requirements.txt first (to leverage Docker cache)
 COPY requirements.txt .
 
