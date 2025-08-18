@@ -4,7 +4,7 @@ from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
 
-from api.app.database import db
+from api.app.database import db, get_minio_client,MINIO_BUCKET_SHEETS
 
 import os
 from datetime import datetime, timezone
@@ -48,49 +48,26 @@ def get_credentials(google_id: str):
         )
     return credentials
 
+# ---------- Helper for safe numeric conversion ----------
+def safe_numeric(series: pd.Series):
+    """Convert a Pandas Series to numeric safely (invalid -> NaN)."""
+    return pd.to_numeric(series, errors="coerce")
+
 def upload_to_minio(csv_filepath: str, sheet_id: str, google_id: str, sheet_name: str):
     """Upload CSV file to MinIO and save metadata to MongoDB"""
     
-    # Debug: MinIO connection details
-    print("\n================ MinIO Connection Debug ================")
-    print(f"📌 MINIO_ENDPOINT: {os.getenv('MINIO_ENDPOINT')}")
-    print(f"📌 MINIO_ACCESS_KEY: {os.getenv('MINIO_ACCESS_KEY')}")
-    print(f"📌 MINIO_SECRET_KEY: {os.getenv('MINIO_SECRET_KEY')}")
-    print("=========================================================\n")
-
-    # Initialize MinIO client
-    minio_client = Minio(
-        endpoint=os.getenv("MINIO_ENDPOINT"),
-        access_key=os.getenv("MINIO_ACCESS_KEY"),
-        secret_key=os.getenv("MINIO_SECRET_KEY"),
-        secure=False  # For development only
-    )
-
-    BUCKET_NAME = "spreadsheet-headers"
     object_name = f"{google_id}/{sheet_id}.csv"
-
-    # Check connection & bucket existence
-    try:
-        if not minio_client.bucket_exists(BUCKET_NAME):
-            print(f"🪣 Bucket '{BUCKET_NAME}' does not exist. Creating...")
-            minio_client.make_bucket(BUCKET_NAME)
-            print(f"✅ Bucket '{BUCKET_NAME}' created successfully.")
-        else:
-            print(f"✅ Bucket '{BUCKET_NAME}' already exists.")
-    except Exception as e:
-        print(f"❌ Failed to connect to MinIO: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to connect to MinIO: {str(e)}")
 
     # Upload file
     try:
-        minio_client.fput_object(BUCKET_NAME, object_name, csv_filepath)
-        print(f"📤 File uploaded to bucket '{BUCKET_NAME}' as '{object_name}'")
+        get_minio_client.fput_object(MINIO_BUCKET_SHEETS, object_name, csv_filepath)
+        print(f"📤 File uploaded to bucket '{MINIO_BUCKET_SHEETS}' as '{object_name}'")
     except S3Error as e:
         print(f"❌ Error uploading to MinIO: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to upload to MinIO: {str(e)}")
 
     # Get file URL
-    file_url = f"http://{os.getenv('MINIO_ENDPOINT')}/{BUCKET_NAME}/{object_name}"
+    file_url = f"http://{os.getenv('MINIO_ENDPOINT')}/{MINIO_BUCKET_SHEETS}/{object_name}"
 
     # Save metadata to MongoDB
     metadata_col = db["spreadsheet_metadata"]
@@ -241,12 +218,11 @@ def load_google_sheet_to_dataframe(sheet_id: str, google_id: str) -> pd.DataFram
 def analyze_google_sheet(sheet_id: str, session, operation: str, column: str, value: str = None) -> Dict[str, Any]:
     """Analyze data in a Google Sheet"""
     df = load_google_sheet_to_dataframe(sheet_id, session)
-    
     if operation == "sum":
-        result = df[column].astype(float).sum()
+        result = safe_numeric(df[column]).sum()
         return {"result": result, "operation": "sum", "column": column}
     elif operation == "mean":
-        result = df[column].astype(float).mean()
+        result = safe_numeric(df[column]).mean()
         return {"result": result, "operation": "mean", "column": column}
     elif operation == "filter":
         if value:

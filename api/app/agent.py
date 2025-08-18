@@ -85,10 +85,13 @@ def get_agent(model_name: str):
     - Preview the first 5 rows of a specific sheet (PreviewGoogleSheet).
     - Load a sheet into a DataFrame for analysis (LoadGoogleSheet).
     - Perform analysis like sum, mean, or filtering on a sheet (AnalyzeGoogleSheet).
-    - List private and public Google Sheets for a user. Requires google_id(ListPrivatePublicSheets).
-    - List all files uploaded by a specific user (google_id) with metadata.(ListUploadedFiles)
-    - Analyze an uploaded CSV or Excel file stored in MinIO. Requires filename.(AnalyzeUploadedFile)
-    Provide clear and concise responses. If a user request requires a specific sheet, ask for the sheet_id if not provided.
+    - List private and public Google Sheets for a user (ListPrivatePublicSheets).
+    - List all files uploaded by a specific user (google_id) with metadata (ListUploadedFiles).
+    - Analyze an uploaded CSV or Excel file stored in MinIO (AnalyzeUploadedFile).
+    **Important:**
+    - Always format your responses in Markdown so the frontend can render them nicely.
+    - Use bullet points, tables, and code blocks where appropriate.
+    - Be clear and concise, and explain results as if teaching a non-technical user.
     """
     llm = llm.with_config(system_message=system_message)
     return create_react_agent(llm, tools=tools)

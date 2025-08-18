@@ -21,10 +21,9 @@ import pandas as pd
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
-from minio import Minio
 from minio.error import S3Error
 
-from api.app.database import db
+from api.app.database import db, get_minio_client, ensure_bucket, minio_file_url, MINIO_BUCKET_SHEETS
 from api.app.agent import get_agent
 from api.app.chat_router import sessions, DEFAULT_MODEL, WELCOME_MESSAGE
 
@@ -46,13 +45,6 @@ FRONTEND_SHEETS_CALLBACK = f"{FRONTEND_URL}/google-sheets/callback"
 SECRET_KEY = os.getenv("JWT_SECRET", "dev_secret")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
-
-# MinIO
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT")
-MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
-MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
-MINIO_SECURE = os.getenv("MINIO_SECURE", "false").lower() == "true"
-MINIO_BUCKET = os.getenv("MINIO_BUCKET")
 
 # Google scopes (Sheets connection ONLY)
 SCOPES_SHEETS = [
@@ -108,41 +100,29 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
 # Models
 # =========================
 class SignupIn(BaseModel):
+    full_name: str   
     email: EmailStr
+    phone: str
     password: str
-    name: str
 
 
 class LoginIn(BaseModel):
     email: EmailStr
     password: str
 
+class VerifyIn(BaseModel):
+    email: EmailStr
+    code: str
+
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+class ResetPasswordIn(BaseModel):
+    email: EmailStr
+    new_password: str
 
 class ExchangeCodeIn(BaseModel):
     code: str
-
-
-# =========================
-# MinIO utilities
-# =========================
-def get_minio_client() -> Minio:
-    return Minio(
-        endpoint=MINIO_ENDPOINT,
-        access_key=MINIO_ACCESS_KEY,
-        secret_key=MINIO_SECRET_KEY,
-        secure=MINIO_SECURE,
-    )
-
-
-def ensure_bucket(minio_client: Minio, bucket: str):
-    if not minio_client.bucket_exists(bucket):
-        minio_client.make_bucket(bucket)
-
-
-def minio_file_url(bucket: str, object_name: str) -> str:
-    # Public-style URL (works if MinIO/ingress serves it). For production, prefer presigned URLs.
-    scheme = "https" if MINIO_SECURE else "http"
-    return f"{scheme}://{MINIO_ENDPOINT}/{bucket}/{object_name}"
 
 
 # =========================
@@ -154,16 +134,21 @@ def signup(payload: SignupIn):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    # constant code for MVP
+    verification_code = "123456"
+
     user_doc = {
+        "full_name": payload.full_name,
         "email": payload.email,
-        "name": payload.name,
+        "phone": payload.phone,
         "password_hash": hash_password(payload.password),
+        "verification_code": verification_code,
+        "is_verified": False,
         "created_at": datetime.now(timezone.utc),
         "last_login": None,
         "google_credentials": None,
     }
     result = db["users"].insert_one(user_doc)
-
     token = create_access_token({"sub": str(result.inserted_id)})
     session_id = str(uuid.uuid4())
     sessions[session_id] = {"agent": get_agent(DEFAULT_MODEL)}
@@ -171,26 +156,18 @@ def signup(payload: SignupIn):
     from api.app.database import save_message
     save_message(session_id, "assistant", WELCOME_MESSAGE)
 
-    # Debug log for backend
-    signup_data = {
-        "message": "Signup successful",
-        "token": token,
-        "session_id": session_id,
-        "user": {
-            "id": str(result.inserted_id),
-            "email": payload.email,
-            "name": payload.name
-        }
+    success = {
+        "message": "Signup successful. Please verify your account with the code.",
+        "user_id": str(result.inserted_id)
     }
-    print(signup_data)  # Just logs to console
 
+    print(success)  # Just logs to console
     # Redirect to frontend with query parameters
     redirect_url = (
         f"{FRONTEND_URL}/auth/callback"
-        f"?token={token}&session_id={session_id}&name={payload.name}&email={payload.email}"
+        f"?token={token}&session_id={session_id}&name={payload.full_name}&email={payload.email}"
     )
     return RedirectResponse(url=redirect_url, status_code=302)
-
 
 @auth_router.post("/login")
 def login(payload: LoginIn):
@@ -198,6 +175,10 @@ def login(payload: LoginIn):
     user = db["users"].find_one({"email": payload.email})
     if not user or not verify_password(payload.password, user.get("password_hash", "")):
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # ✅ Prevent login if account is not verified
+    if not user.get("is_verified", False):
+        raise HTTPException(status_code=403, detail="Account not verified. Please verify your email first.")
 
     # Update last_login timestamp
     db["users"].update_one(
@@ -234,6 +215,60 @@ def login(payload: LoginIn):
     )
     return RedirectResponse(url=redirect_url, status_code=302)
 
+@auth_router.post("/verify")
+def verify_user(payload: VerifyIn):
+    user = db["users"].find_one({"email": payload.email})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if payload.code != user.get("verification_code"):
+        raise HTTPException(status_code=400, detail="Invalid verification code")
+    
+    db["users"].update_one(
+        {"_id": user["_id"]},
+        {"$set": {"is_verified": True}}
+    )
+
+    success = {
+        "message": "Account verified successfully",
+        "email": payload.email
+    }
+    print(success)
+
+    redirect_url = (
+        f"{FRONTEND_URL}/auth/verify-callback"
+        f"?status=success&email={payload.email}"
+    )
+    return RedirectResponse(url=redirect_url, status_code=302)
+
+
+
+@auth_router.post("/forgot-password")
+def forgot_password(payload: ForgotPasswordIn):
+    user = db["users"].find_one({"email": payload.email})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    forget_link = f"{FRONTEND_URL}/reset-password?email={payload.email}"
+    print({"message": "Password forget link generated", "forget_link":forget_link})
+
+    return RedirectResponse(url=forget_link, status_code=302)
+
+
+@auth_router.post("/reset-password")
+def reset_password(payload: ResetPasswordIn):
+    user = db["users"].find_one({"email": payload.email})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db["users"].update_one(
+        {"_id": user["_id"]},
+        {"$set": {"password_hash": hash_password(payload.new_password)}}
+    )
+    success = {"message": "Password reset successful"}
+    print(success)
+    reset_link = f"{FRONTEND_URL}/reset-success?email={payload.email}"
+    return RedirectResponse(url=reset_link, status_code=302)
 
 # ====================================================
 # Google Sheets Connect (separate from login/signup)
@@ -327,7 +362,7 @@ def _ingest_user_sheets_to_minio(user_id: str, creds: Credentials) -> List[Dict[
     ).execute().get("files", [])
 
     minio_client = get_minio_client()
-    ensure_bucket(minio_client, MINIO_BUCKET)
+    ensure_bucket(minio_client, MINIO_BUCKET_SHEETS)
 
     uploaded = []
     for f in sheets:
@@ -356,7 +391,7 @@ def _ingest_user_sheets_to_minio(user_id: str, creds: Credentials) -> List[Dict[
         # Upload to MinIO under user_id/sheet_id.csv
         object_name = f"{user_id}/{sheet_id}.csv"
         try:
-            minio_client.fput_object(MINIO_BUCKET, object_name, csv_path)
+            minio_client.fput_object(MINIO_BUCKET_SHEETS, object_name, csv_path)
         except S3Error as e:
             # clean temp and continue
             try:
@@ -371,14 +406,14 @@ def _ingest_user_sheets_to_minio(user_id: str, creds: Credentials) -> List[Dict[
         except Exception:
             pass
 
-        file_url = minio_file_url(MINIO_BUCKET, object_name)
+        file_url = minio_file_url(MINIO_BUCKET_SHEETS, object_name)
 
         # Store/Upsert metadata for listing
         meta = {
             "owner_id": user_id,
             "sheet_id": sheet_id,
             "sheet_name": sheet_name,
-            "bucket": MINIO_BUCKET,
+            "bucket": MINIO_BUCKET_SHEETS,
             "object_name": object_name,
             "file_url": file_url,
             "headers": headers,

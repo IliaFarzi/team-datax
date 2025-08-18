@@ -15,7 +15,7 @@ sessions = {}
 DEFAULT_MODEL = "mistralai/mistral-small-3.2-24b-instruct"
 
 
-WELCOME_MESSAGE = "hi, how can i help you?😊"
+WELCOME_MESSAGE = "👋 **Welcome!** How can I help you today?"
 
 @chat_router.post("/send_message")
 def send_message(message: UserMessage, request:Request):

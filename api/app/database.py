@@ -1,8 +1,12 @@
 #api/app/database.py
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
+
 import os
 from dotenv import load_dotenv
+
+from minio import Minio
+from minio.error import S3Error
 
 # Load environment variables
 load_dotenv(".env")
@@ -65,3 +69,63 @@ def get_history(session_id: str) -> list:
     except Exception as e:
         print(f"❗ Error retrieving history from MongoDB for session {session_id}: {e}")
         return []
+
+# =========================
+# MinIO config
+# =========================
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT")
+MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
+MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
+MINIO_SECURE = os.getenv("MINIO_SECURE", "false").lower() == "true"
+MINIO_BUCKET_SHEETS = os.getenv("MINIO_BUCKET_SHEETS", "spreadsheet-headers")
+MINIO_BUCKET_UPLOADS = os.getenv("MINIO_BUCKET_UPLOADS", "user-uploads")
+
+# =========================
+# MinIO utilities
+# =========================
+def get_minio_client() -> Minio:
+    """Create and return a MinIO client."""
+    client = Minio(
+        endpoint=MINIO_ENDPOINT,
+        access_key=MINIO_ACCESS_KEY,
+        secret_key=MINIO_SECRET_KEY,
+        secure=MINIO_SECURE,
+    )
+    return client
+
+
+def ensure_bucket(minio_client: Minio, bucket: str):
+    """Ensure a bucket exists. If not, create it. Print debug logs."""
+    try:
+        if not minio_client.bucket_exists(bucket):
+            print(f"🪣 Bucket '{bucket}' does not exist. Creating...")
+            minio_client.make_bucket(bucket)
+            print(f"✅ Bucket '{bucket}' created successfully.")
+        else:
+            print(f"✅ Bucket '{bucket}' already exists.")
+    except Exception as e:
+        print(f"❌ Failed to connect/check bucket '{bucket}': {e}")
+
+
+def minio_file_url(bucket: str, object_name: str) -> str:
+    """Return a public-style MinIO URL (for dev/testing)."""
+    scheme = "https" if MINIO_SECURE else "http"
+    return f"{scheme}://{MINIO_ENDPOINT}/{bucket}/{object_name}"
+
+# =========================
+# Init check (runs once at import)
+# =========================
+if MINIO_ENDPOINT and MINIO_ACCESS_KEY and MINIO_SECRET_KEY:
+    client = get_minio_client()
+    print("\n================ MinIO Connection Debug ================")
+    print(f"📌 MINIO_ENDPOINT: {MINIO_ENDPOINT}")
+    print(f"📌 MINIO_ACCESS_KEY: {MINIO_ACCESS_KEY}")
+    print(f"📌 MINIO_SECRET_KEY: {MINIO_SECRET_KEY[:4]}***")
+    print(f"📌 Secure: {MINIO_SECURE}")
+    print("=========================================================\n")
+
+    # Ensure default buckets exist
+    ensure_bucket(client, MINIO_BUCKET_SHEETS)
+    ensure_bucket(client, MINIO_BUCKET_UPLOADS)
+else:
+    print("⚠️ MinIO environment variables are missing. Skipping MinIO init.")
