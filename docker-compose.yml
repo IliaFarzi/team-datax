@@ -22,8 +22,8 @@ services:
       - DATAX_MINIO_BUCKET_SHEETS=${DATAX_MINIO_BUCKET_SHEETS}
       - DATAX_MINIO_BUCKET_UPLOADS=${DATAX_MINIO_BUCKET_UPLOADS}
     networks:
-      - datax-network
+      - shared-net
 
 networks:
-  datax-network:
-    driver: bridge
+  shared-net:
+    external: true

@@ -1,4 +1,4 @@
-name: Build and Deploy
+name: datax-deploy
 
 on:
   push:
@@ -53,18 +53,14 @@ jobs:
           script: |
             cd /home/overall/vsp/multi
 
-            # If it's your first time, clone the repo.
-            if [ ! -d "multi-team-dev-deployment" ]; then
-              git clone https://github.com/mohammad-heidary/AI-Agent multi-team-dev-deployment
+            if [ ! -d "datax" ]; then
+              git clone https://github.com/mohammad-heidary/AI-Agent datax
             fi
 
-            cd multi-team-dev-deployment
+            cd datax
             git pull origin main
 
-            # Take the last image
             docker compose -f docker-compose.yml pull
-
-            # Restart the service
             docker compose -f docker-compose.yml up -d --no-build
 
             echo "✅ Deployment successful! Visit: http://62.60.198.4:8040"
