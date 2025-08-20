@@ -3,8 +3,6 @@ langchain==0.3.27
 langchain-core==0.3.74
 langchain-community==0.3.27
 langchain-openai==0.3.30
-langchain-huggingface==0.3.1
-langchain-tavily==0.2.11
 langgraph==0.6.5
 
 # FastAPI & web

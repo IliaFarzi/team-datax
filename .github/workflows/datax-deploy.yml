@@ -54,7 +54,7 @@ jobs:
             cd /home/overall/vsp/multi
 
             if [ ! -d "datax" ]; then
-              git clone https://github.com/mohammad-heidary/AI-Agent datax
+              git clone https://github.com/mohammad-heidary/team-datax datax
             fi
 
             cd datax
