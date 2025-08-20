@@ -12,31 +12,31 @@ from minio.error import S3Error
 load_dotenv(".env")
 
 # Get MongoDB configuration
-MONGO_URI = os.getenv("MONGO_URI")
-MONGO_DB_NAME = os.getenv("MONGO_DB_NAME")
-MONGO_COLLECTION_NAME = os.getenv("MONGO_COLLECTION_NAME")
+DATAX_MONGO_URI = os.getenv("DATAX_MONGO_URI")
+DATAX_MONGO_DB_NAME = os.getenv("DATAX_MONGO_DB_NAME")
+DATAX_MONGO_COLLECTION_NAME = os.getenv("DATAX_MONGO_COLLECTION_NAME")
 
 # Initialize MongoDB client and database
 try:
-    client = MongoClient(MONGO_URI, server_api=ServerApi('1'))
+    client = MongoClient(DATAX_MONGO_URI, server_api=ServerApi('1'))
     client.admin.command('ping')
     print("✅ Pinged your deployment. Connected to MongoDB successfully!")
     
-    db = client[MONGO_DB_NAME]
-    chat_sessions_collection = db[MONGO_COLLECTION_NAME]
+    db = client[DATAX_MONGO_DB_NAME]
+    chat_sessions_collection = db[DATAX_MONGO_COLLECTION_NAME]
     users_col = db["users"]  # New collection for users
     
     db_list = client.list_database_names()
-    if MONGO_DB_NAME in db_list:
-        print(f"✅ Database '{MONGO_DB_NAME}' exists.")
+    if DATAX_MONGO_DB_NAME in db_list:
+        print(f"✅ Database '{DATAX_MONGO_DB_NAME}' exists.")
     else:
-        print(f"ℹ️  Database '{MONGO_DB_NAME}' will be created on first use.")
+        print(f"ℹ️  Database '{DATAX_MONGO_DB_NAME}' will be created on first use.")
 
     col_list = db.list_collection_names()
-    if MONGO_COLLECTION_NAME in col_list:
-        print(f"✅ Collection '{MONGO_COLLECTION_NAME}' exists.")
+    if DATAX_MONGO_COLLECTION_NAME in col_list:
+        print(f"✅ Collection '{DATAX_MONGO_COLLECTION_NAME}' exists.")
     else:
-        print(f"ℹ️  Collection '{MONGO_COLLECTION_NAME}' will be created on first use.")
+        print(f"ℹ️  Collection '{DATAX_MONGO_COLLECTION_NAME}' will be created on first use.")
     
     if "users" in col_list:
         print(f"✅ Collection 'users' exists.")
@@ -73,12 +73,12 @@ def get_history(session_id: str) -> list:
 # =========================
 # MinIO config
 # =========================
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT")
-MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
-MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
-MINIO_SECURE = os.getenv("MINIO_SECURE", "false").lower() == "true"
-MINIO_BUCKET_SHEETS = os.getenv("MINIO_BUCKET_SHEETS", "spreadsheet-headers")
-MINIO_BUCKET_UPLOADS = os.getenv("MINIO_BUCKET_UPLOADS", "user-uploads")
+DATAX_MINIO_ENDPOINT = os.getenv("DATAX_MINIO_ENDPOINT")
+DATAX_MINIO_ACCESS_KEY = os.getenv("DATAX_MINIO_ACCESS_KEY")
+DATAX_MINIO_SECRET_KEY = os.getenv("DATAX_MINIO_SECRET_KEY")
+DATAX_MINIO_SECURE = os.getenv("MINIO_SECURE", "false").lower() == "true"
+DATAX_MINIO_BUCKET_SHEETS = os.getenv("DATAX_MINIO_BUCKET_SHEETS")
+DATAX_MINIO_BUCKET_UPLOADS = os.getenv("DATAX_MINIO_BUCKET_UPLOADS")
 
 # =========================
 # MinIO utilities
@@ -86,10 +86,10 @@ MINIO_BUCKET_UPLOADS = os.getenv("MINIO_BUCKET_UPLOADS", "user-uploads")
 def get_minio_client() -> Minio:
     """Create and return a MinIO client."""
     client = Minio(
-        endpoint=MINIO_ENDPOINT,
-        access_key=MINIO_ACCESS_KEY,
-        secret_key=MINIO_SECRET_KEY,
-        secure=MINIO_SECURE,
+        endpoint=DATAX_MINIO_ENDPOINT,
+        access_key=DATAX_MINIO_ACCESS_KEY,
+        secret_key=DATAX_MINIO_SECRET_KEY,
+        secure=DATAX_MINIO_SECURE,
     )
     return client
 
@@ -109,23 +109,23 @@ def ensure_bucket(minio_client: Minio, bucket: str):
 
 def minio_file_url(bucket: str, object_name: str) -> str:
     """Return a public-style MinIO URL (for dev/testing)."""
-    scheme = "https" if MINIO_SECURE else "http"
-    return f"{scheme}://{MINIO_ENDPOINT}/{bucket}/{object_name}"
+    scheme = "https" if DATAX_MINIO_SECURE else "http"
+    return f"{scheme}://{DATAX_MINIO_ENDPOINT}/{bucket}/{object_name}"
 
 # =========================
 # Init check (runs once at import)
 # =========================
-if MINIO_ENDPOINT and MINIO_ACCESS_KEY and MINIO_SECRET_KEY:
+if DATAX_MINIO_ENDPOINT and DATAX_MINIO_ACCESS_KEY and DATAX_MINIO_SECRET_KEY:
     client = get_minio_client()
     print("\n================ MinIO Connection Debug ================")
-    print(f"📌 MINIO_ENDPOINT: {MINIO_ENDPOINT}")
-    print(f"📌 MINIO_ACCESS_KEY: {MINIO_ACCESS_KEY}")
-    print(f"📌 MINIO_SECRET_KEY: {MINIO_SECRET_KEY[:4]}***")
-    print(f"📌 Secure: {MINIO_SECURE}")
+    print(f"📌 DATAX_MINIO_ENDPOINT: {DATAX_MINIO_ENDPOINT}")
+    print(f"📌 DATAX_MINIO_ACCESS_KEY: {DATAX_MINIO_ACCESS_KEY}")
+    print(f"📌 DATAX_MINIO_SECRET_KEY: {DATAX_MINIO_SECRET_KEY[:4]}***")
+    print(f"📌 Secure: {DATAX_MINIO_SECURE}")
     print("=========================================================\n")
 
     # Ensure default buckets exist
-    ensure_bucket(client, MINIO_BUCKET_SHEETS)
-    ensure_bucket(client, MINIO_BUCKET_UPLOADS)
+    ensure_bucket(client, DATAX_MINIO_BUCKET_SHEETS)
+    ensure_bucket(client, DATAX_MINIO_BUCKET_UPLOADS)
 else:
     print("⚠️ MinIO environment variables are missing. Skipping MinIO init.")
