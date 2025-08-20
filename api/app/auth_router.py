@@ -95,6 +95,15 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
         raise HTTPException(status_code=401, detail="User not found")
     return user
 
+# =========================
+# Helper: extract email from JWT
+# =========================
+def get_current_email_from_session(user: Dict[str, Any] = Depends(get_current_user)) -> str:
+    email = user.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email not found in session")
+    return email
+
 
 # =========================
 # Models
@@ -111,15 +120,13 @@ class LoginIn(BaseModel):
     password: str
 
 class VerifyIn(BaseModel):
-    email: EmailStr
-    code: str
+    code: str  # email will be taken from token
 
 class ForgotPasswordIn(BaseModel):
     email: EmailStr
 
 class ResetPasswordIn(BaseModel):
-    email: EmailStr
-    new_password: str
+    new_password: str  # email will be taken from token
 
 class ExchangeCodeIn(BaseModel):
     code: str
@@ -215,13 +222,17 @@ def login(payload: LoginIn):
     )
     return RedirectResponse(url=redirect_url, status_code=302)
 
+# =========================
+# /auth/verify  (Only code comes from the frontend; email from JWT)
+# =========================
 @auth_router.post("/verify")
-def verify_user(payload: VerifyIn):
-    user = db["users"].find_one({"email": payload.email})
+def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_session)):
+    user = db["users"].find_one({"email": email})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
     if payload.code != user.get("verification_code"):
+        # You can also redirect this to the failure callback if needed.
         raise HTTPException(status_code=400, detail="Invalid verification code")
     
     db["users"].update_one(
@@ -229,19 +240,10 @@ def verify_user(payload: VerifyIn):
         {"$set": {"is_verified": True}}
     )
 
-    success = {
-        "message": "Account verified successfully",
-        "email": payload.email
-    }
-    print(success)
-
-    redirect_url = (
-        f"{FRONTEND_URL}/auth/verify-callback"
-        f"?status=success&email={payload.email}"
-    )
+    # Log + Redirect
+    print({"message": "Account verified successfully", "email": email})
+    redirect_url = f"{FRONTEND_URL}/auth/verify-callback?status=success&email={email}"
     return RedirectResponse(url=redirect_url, status_code=302)
-
-
 
 @auth_router.post("/forgot-password")
 def forgot_password(payload: ForgotPasswordIn):
@@ -254,10 +256,12 @@ def forgot_password(payload: ForgotPasswordIn):
 
     return RedirectResponse(url=forget_link, status_code=302)
 
-
+# =========================
+# /auth/verify  (Only code comes from the frontend; email from JWT)
+# =========================
 @auth_router.post("/reset-password")
-def reset_password(payload: ResetPasswordIn):
-    user = db["users"].find_one({"email": payload.email})
+def reset_password(payload: ResetPasswordIn, email: str = Depends(get_current_email_from_session)):
+    user = db["users"].find_one({"email": email})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -265,10 +269,12 @@ def reset_password(payload: ResetPasswordIn):
         {"_id": user["_id"]},
         {"$set": {"password_hash": hash_password(payload.new_password)}}
     )
-    success = {"message": "Password reset successful"}
-    print(success)
-    reset_link = f"{FRONTEND_URL}/reset-success?email={payload.email}"
-    return RedirectResponse(url=reset_link, status_code=302)
+
+    # Log + Redirect
+    print({"message": "Password reset successful", "email": email})
+    redirect_url = f"{FRONTEND_URL}/reset-success?email={email}"
+    return RedirectResponse(url=redirect_url, status_code=302)
+
 
 # ====================================================
 # Google Sheets Connect (separate from login/signup)
