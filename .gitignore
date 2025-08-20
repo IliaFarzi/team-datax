@@ -1,3 +1,4 @@
 /api/app/client_secret.json
 .env
+-Copy.env
 echo api/app/client_secret.json >> .gitignore
