@@ -53,10 +53,25 @@ jobs:
           script: |
             cd /home/overall/vsp/multi/multi-team-dev-deployment
 
-            # Pull the latest image
-            docker compose -f docker-compose.yml pull
+            # Stop old container
+            docker compose -f docker-compose.yml down
 
-            # Restart the service
-            docker compose -f docker-compose.yml up -d --no-build
+            # Set secrets as environment variables for docker compose
+            export OPENROUTER_API_BASE=${{ secrets.OPENROUTER_API_BASE }}
+            export OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
+            export JWT_SECRET=${{ secrets.JWT_SECRET }}
+            export DATAX_MONGO_URI=${{ secrets.DATAX_MONGO_URI }}
+            export DATAX_MONGO_COLLECTION_NAME=${{ secrets.DATAX_MONGO_COLLECTION_NAME }}
+            export DATAX_MONGO_DB_NAME=${{ secrets.DATAX_MONGO_DB_NAME }}
+            export FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+            export SESSION_SECRET_KEY=${{ secrets.SESSION_SECRET_KEY }}
+            export DATAX_MINIO_ACCESS_KEY=${{ secrets.DATAX_MINIO_ACCESS_KEY }}
+            export DATAX_MINIO_SECRET_KEY=${{ secrets.DATAX_MINIO_SECRET_KEY }}
+            export DATAX_MINIO_ENDPOINT=${{ secrets.DATAX_MINIO_ENDPOINT }}
+            export DATAX_MINIO_BUCKET_SHEETS=${{ secrets.DATAX_MINIO_BUCKET_SHEETS }}
+            export DATAX_MINIO_BUCKET_UPLOADS=${{ secrets.DATAX_MINIO_BUCKET_UPLOADS }}
+
+            # Pull latest image and start new container
+            docker compose -f docker-compose.yml up -d --pull always
 
             echo "✅ Deployment successful!"

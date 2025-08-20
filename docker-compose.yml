@@ -2,13 +2,25 @@ version: '3.8'
 
 services:
   datax-backend:
-    image: heidarym78/datax-backend:latest 
+    image: heidarym78/datax-backend:latest
     container_name: datax-backend
     restart: always
     ports:
       - "8040:8040"
-    env_file:
-      - .env
+    environment:
+      - OPENROUTER_API_BASE=${OPENROUTER_API_BASE}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - DATAX_MONGO_URI=${DATAX_MONGO_URI}
+      - DATAX_MONGO_COLLECTION_NAME=${DATAX_MONGO_COLLECTION_NAME}
+      - DATAX_MONGO_DB_NAME=${DATAX_MONGO_DB_NAME}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - SESSION_SECRET_KEY=${SESSION_SECRET_KEY}
+      - DATAX_MINIO_ACCESS_KEY=${DATAX_MINIO_ACCESS_KEY}
+      - DATAX_MINIO_SECRET_KEY=${DATAX_MINIO_SECRET_KEY}
+      - DATAX_MINIO_ENDPOINT=${DATAX_MINIO_ENDPOINT}
+      - DATAX_MINIO_BUCKET_SHEETS=${DATAX_MINIO_BUCKET_SHEETS}
+      - DATAX_MINIO_BUCKET_UPLOADS=${DATAX_MINIO_BUCKET_UPLOADS}
     networks:
       - datax-network
 
