@@ -53,12 +53,30 @@ jobs:
           script: |
             cd /home/overall/vsp/multi
 
+            # Create shared network if it doesn't exist
+            docker network ls | grep -w multi-team-dev-deployment_shared-net || docker network create multi-team-dev-deployment_shared-net
+
             if [ ! -d "datax" ]; then
               git clone https://github.com/mohammad-heidary/team-datax datax
             fi
 
             cd datax
             git pull origin main
+
+            # Create .env.datax file with environment variables
+            echo "OPENROUTER_API_BASE=${{ secrets.OPENROUTER_API_BASE }}" > .env.datax
+            echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env.datax
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.datax
+            echo "DATAX_MONGO_URI=${{ secrets.DATAX_MONGO_URI }}" >> .env.datax
+            echo "DATAX_MONGO_COLLECTION_NAME=${{ secrets.DATAX_MONGO_COLLECTION_NAME }}" >> .env.datax
+            echo "DATAX_MONGO_DB_NAME=${{ secrets.DATAX_MONGO_DB_NAME }}" >> .env.datax
+            echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" >> .env.datax
+            echo "SESSION_SECRET_KEY=${{ secrets.SESSION_SECRET_KEY }}" >> .env.datax
+            echo "DATAX_MINIO_ACCESS_KEY=${{ secrets.DATAX_MINIO_ACCESS_KEY }}" >> .env.datax
+            echo "DATAX_MINIO_SECRET_KEY=${{ secrets.DATAX_MINIO_SECRET_KEY }}" >> .env.datax
+            echo "DATAX_MINIO_ENDPOINT=${{ secrets.DATAX_MINIO_ENDPOINT }}" >> .env.datax
+            echo "DATAX_MINIO_BUCKET_SHEETS=${{ secrets.DATAX_MINIO_BUCKET_SHEETS }}" >> .env.datax
+            echo "DATAX_MINIO_BUCKET_UPLOADS=${{ secrets.DATAX_MINIO_BUCKET_UPLOADS }}" >> .env.datax
 
             docker compose -f docker-compose.yml pull
             docker compose -f docker-compose.yml up -d --no-build

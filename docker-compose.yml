@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   datax-backend:
     image: heidarym78/datax-backend:latest
@@ -21,9 +19,12 @@ services:
       - DATAX_MINIO_ENDPOINT=${DATAX_MINIO_ENDPOINT}
       - DATAX_MINIO_BUCKET_SHEETS=${DATAX_MINIO_BUCKET_SHEETS}
       - DATAX_MINIO_BUCKET_UPLOADS=${DATAX_MINIO_BUCKET_UPLOADS}
+    env_file:
+      - .env.datax
     networks:
       - shared-net
 
 networks:
   shared-net:
-    external: true
+    external:
+      name: multi-team-dev-deployment_shared-net
