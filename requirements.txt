@@ -33,8 +33,5 @@ google-api-python-client==2.179.0
 # Storage
 minio==7.2.16
 
-pandas
-os
-datetime
-typing
+pandas==2.3.2
 
