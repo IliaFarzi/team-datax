@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import tempfile
 from datetime import datetime, timezone
 
-from api.app.database import db, get_minio_client
+from api.app.database import db, get_minio_client, DATAX_MINIO_BUCKET_UPLOADS
 
 load_dotenv(".env")
 
@@ -32,7 +32,7 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
 
         # Upload to MinIO
         object_name = file.filename
-        get_minio_client.fput_object(MINIO_BUCKET_UPLOADS, object_name, tmp_path)
+        get_minio_client.fput_object(DATAX_MINIO_BUCKET_UPLOADS, object_name, tmp_path)
 
         # ✅ حالا قبل از حذف tmp_path می‌خونیم
         if file.filename.endswith(".csv"):
@@ -44,12 +44,12 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         os.remove(tmp_path)
 
         # File URL (static reference to MinIO)
-        file_url = f"http://{os.getenv('MINIO_ENDPOINT')}/{MINIO_BUCKET_UPLOADS}/{object_name}"
+        file_url = f"http://{os.getenv('MINIO_ENDPOINT')}/{DATAX_MINIO_BUCKET_UPLOADS}/{object_name}"
 
         metadata = {
             "google_id": google_id,
             "filename": object_name,
-            "bucket": MINIO_BUCKET_UPLOADS,
+            "bucket": DATAX_MINIO_BUCKET_UPLOADS,
             "url": file_url,
             "rows": len(df),
             "columns": len(df.columns),

@@ -4,7 +4,7 @@ from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
 
-from api.app.database import db, get_minio_client,MINIO_BUCKET_SHEETS
+from api.app.database import db, get_minio_client,DATAX_MINIO_BUCKET_SHEETS
 
 import os
 from datetime import datetime, timezone
@@ -60,14 +60,14 @@ def upload_to_minio(csv_filepath: str, sheet_id: str, google_id: str, sheet_name
 
     # Upload file
     try:
-        get_minio_client.fput_object(MINIO_BUCKET_SHEETS, object_name, csv_filepath)
-        print(f"📤 File uploaded to bucket '{MINIO_BUCKET_SHEETS}' as '{object_name}'")
+        get_minio_client.fput_object(DATAX_MINIO_BUCKET_SHEETS, object_name, csv_filepath)
+        print(f"📤 File uploaded to bucket '{DATAX_MINIO_BUCKET_SHEETS}' as '{object_name}'")
     except S3Error as e:
         print(f"❌ Error uploading to MinIO: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to upload to MinIO: {str(e)}")
 
     # Get file URL
-    file_url = f"http://{os.getenv('MINIO_ENDPOINT')}/{MINIO_BUCKET_SHEETS}/{object_name}"
+    file_url = f"http://{os.getenv('MINIO_ENDPOINT')}/{DATAX_MINIO_BUCKET_SHEETS}/{object_name}"
 
     # Save metadata to MongoDB
     metadata_col = db["spreadsheet_metadata"]
