@@ -26,5 +26,5 @@ services:
 
 networks:
   shared-net:
-    external:
-      name: multi-team-dev-deployment_shared-net
+    name: multi-team-dev-deployment_shared-net
+    external: true
