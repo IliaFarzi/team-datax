@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 
 from minio.error import S3Error
 
-from api.app.database import db, get_minio_client, ensure_bucket, minio_file_url, MINIO_BUCKET_SHEETS
+from api.app.database import db, get_minio_client, ensure_bucket, minio_file_url, DATAX_
 from api.app.agent import get_agent
 from api.app.chat_router import sessions, DEFAULT_MODEL, WELCOME_MESSAGE
 
@@ -368,7 +368,7 @@ def _ingest_user_sheets_to_minio(user_id: str, creds: Credentials) -> List[Dict[
     ).execute().get("files", [])
 
     minio_client = get_minio_client()
-    ensure_bucket(minio_client, MINIO_BUCKET_SHEETS)
+    ensure_bucket(minio_client, DATAX_MINIO_BUCKET_SHEETS)
 
     uploaded = []
     for f in sheets:
