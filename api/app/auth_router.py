@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 
 from minio.error import S3Error
 
-from api.app.database import db, get_minio_client, ensure_bucket, minio_file_url, DATAX_
+from api.app.database import db, get_minio_client, ensure_bucket, minio_file_url, DATAX_MINIO_BUCKET_SHEETS
 from api.app.agent import get_agent
 from api.app.chat_router import sessions, DEFAULT_MODEL, WELCOME_MESSAGE
 
@@ -397,7 +397,7 @@ def _ingest_user_sheets_to_minio(user_id: str, creds: Credentials) -> List[Dict[
         # Upload to MinIO under user_id/sheet_id.csv
         object_name = f"{user_id}/{sheet_id}.csv"
         try:
-            minio_client.fput_object(MINIO_BUCKET_SHEETS, object_name, csv_path)
+            minio_client.fput_object(DATAX_MINIO_BUCKET_SHEETS, object_name, csv_path)
         except S3Error as e:
             # clean temp and continue
             try:
@@ -412,14 +412,14 @@ def _ingest_user_sheets_to_minio(user_id: str, creds: Credentials) -> List[Dict[
         except Exception:
             pass
 
-        file_url = minio_file_url(MINIO_BUCKET_SHEETS, object_name)
+        file_url = minio_file_url(DATAX_MINIO_BUCKET_SHEETS, object_name)
 
         # Store/Upsert metadata for listing
         meta = {
             "owner_id": user_id,
             "sheet_id": sheet_id,
             "sheet_name": sheet_name,
-            "bucket": MINIO_BUCKET_SHEETS,
+            "bucket": DATAX_MINIO_BUCKET_SHEETS,
             "object_name": object_name,
             "file_url": file_url,
             "headers": headers,
