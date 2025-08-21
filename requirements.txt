@@ -24,10 +24,6 @@ pymongo==4.14.0
 email-validator==2.2.0
 pydantic==2.11.7
 
-# ML / NLP
-sentence-transformers==5.1.0
-regex==2025.7.34
-
 # Google APIs
 google-auth==2.40.3
 google-auth-oauthlib==1.2.2
