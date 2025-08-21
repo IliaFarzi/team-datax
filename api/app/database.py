@@ -1,6 +1,7 @@
 #api/app/database.py
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
+from pymongo.errors import OperationFailure
 
 import os
 from dotenv import load_dotenv
@@ -32,20 +33,39 @@ try:
     else:
         print(f"ℹ️  Database '{DATAX_MONGO_DB_NAME}' will be created on first use.")
 
-    col_list = db.list_collection_names()
-    if DATAX_MONGO_COLLECTION_NAME in col_list:
-        print(f"✅ Collection '{DATAX_MONGO_COLLECTION_NAME}' exists.")
-    else:
-        print(f"ℹ️  Collection '{DATAX_MONGO_COLLECTION_NAME}' will be created on first use.")
-    
-    if "users" in col_list:
-        print(f"✅ Collection 'users' exists.")
-    else:
-        print(f"ℹ️  Collection 'users' will be created on first use.")
+    try:
+        col_list = db.list_collection_names()
+        if DATAX_MONGO_COLLECTION_NAME in col_list:
+            print(f"✅ Collection '{DATAX_MONGO_COLLECTION_NAME}' exists.")
+        else:
+            print(f"ℹ️  Collection '{DATAX_MONGO_COLLECTION_NAME}' will be created on first use.")
+        
+        if "users" in col_list:
+            print(f"✅ Collection 'users' exists.")
+        else:
+            print(f"ℹ️  Collection 'users' will be created on first use.")
+    except OperationFailure as e:
+        if "not authorized" in str(e):
+            print(f"⚠️ Not authorized to list collections. Collections will be created on first use.")
+        else:
+            raise e
 
 except Exception as e:
     print(f"❌ Error connecting to MongoDB: {e}")
     raise e
+
+def save_message(session_id: str, role: str, content: str):
+    try:
+        result = chat_sessions_collection.update_one(
+            {"session_id": session_id},
+            {
+                "$push": {"messages": {"role": role, "content": content}},
+                "$setOnInsert": {"session_id": session_id}
+            },
+            upsert=True
+        )
+    except Exception as e:
+        print(f"❗ Error saving message to MongoDB for session {session_id}: {e}")
 
 def save_message(session_id: str, role: str, content: str):
     try:
