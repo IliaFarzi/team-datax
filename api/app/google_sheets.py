@@ -15,7 +15,6 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi import BackgroundTasks
 
-
 from minio import Minio
 from minio.error import S3Error
 
