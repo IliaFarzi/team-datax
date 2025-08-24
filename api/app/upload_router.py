@@ -1,3 +1,4 @@
+#api/app/upload_router.py
 from fastapi import APIRouter, File, UploadFile, HTTPException, Request
 from minio import Minio
 import pandas as pd
@@ -9,6 +10,8 @@ from datetime import datetime, timezone
 from api.app.database import db, get_minio_client, DATAX_MINIO_ENDPOINT, DATAX_MINIO_BUCKET_UPLOADS
 from api.app.models import AnalyzeUploadedFileArgs, ListUploadedFilesArgs
 
+
+
 load_dotenv(".env")
 
 upload_router = APIRouter(prefix="/upload", tags=["File Upload"])
@@ -18,8 +21,9 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
     """Upload CSV/Excel to MinIO and store metadata in MongoDB."""
     try:
         # Get google_id from session (or other user identifier)
-        google_id = request.session.get("google_id", "anonymous")
-
+        google_id = request.session.get("google_id")
+        if not google_id:
+            raise HTTPException(status_code=401, detail="User not authenticated")
         # Validate file type
         if not (file.filename.endswith(".csv") or file.filename.endswith(".xlsx")):
             raise HTTPException(status_code=400, detail="Only CSV and Excel files are allowed.")

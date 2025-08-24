@@ -33,7 +33,7 @@ from api.app.chat_router import sessions, DEFAULT_MODEL, WELCOME_MESSAGE
 load_dotenv(".env")
 
 # For local testing only. Remove in production.
-os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "0"
 
 CLIENT_SECRETS_FILE = os.path.join(os.path.dirname(__file__), "client_secret.json")
 

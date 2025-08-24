@@ -16,6 +16,7 @@ from api.app.google_sheets import  google_sheets_preview_router
 load_dotenv(".env")
 
 SECRET_KEY = os.getenv("SESSION_SECRET_KEY")
+VPS_HOST=os.getenv('VPS_HOST')
 FRONTEND_ORIGIN = os.getenv("FRONTEND_URL")  
 
 app = FastAPI(title="Smart Support Chatbot", description="API for chat, file upload, Google Sheets integration, and data analysis")
@@ -27,7 +28,7 @@ app.add_middleware(
     secret_key=SECRET_KEY,
     same_site="none",  
     https_only=False,
-    domain="localhost"
+    domain="VPS_HOST"
 )
 
 # ✅ CORS middleware

@@ -59,7 +59,8 @@ def upload_to_minio(csv_filepath: str, sheet_id: str, google_id: str, sheet_name
 
     # Upload file
     try:
-        get_minio_client.fput_object(DATAX_MINIO_BUCKET_SHEETS, object_name, csv_filepath)
+        minio_client = get_minio_client()
+        minio_client.fput_object(DATAX_MINIO_BUCKET_SHEETS, object_name, csv_filepath)
         print(f"📤 File uploaded to bucket '{DATAX_MINIO_BUCKET_SHEETS}' as '{object_name}'")
     except S3Error as e:
         print(f"❌ Error uploading to MinIO: {e}")
@@ -104,7 +105,8 @@ def list_private_sheets(google_id: str) -> List[str]:
 @google_sheets_preview_router.get("/")
 async def list_sheets(request: Request):
     """List user's Google Sheets files"""
-    credentials = get_credentials(request.session)
+    google_id = request.session.get("google_id")
+    credentials = get_credentials(google_id)
     if not credentials:
         raise HTTPException(status_code=401, detail="Not connected to Google Sheets")
 
@@ -214,9 +216,9 @@ def load_google_sheet_to_dataframe(sheet_id: str, google_id: str) -> pd.DataFram
     df = pd.DataFrame(values[1:], columns=values[0])
     return df
 
-def analyze_google_sheet(sheet_id: str, session, operation: str, column: str, value: str = None) -> Dict[str, Any]:
+def analyze_google_sheet(sheet_id: str, google_id: str, operation: str, column: str, value: str = None):
     """Analyze data in a Google Sheet"""
-    df = load_google_sheet_to_dataframe(sheet_id, session)
+    df = load_google_sheet_to_dataframe(sheet_id, google_id)
     if operation == "sum":
         result = safe_numeric(df[column]).sum()
         return {"result": result, "operation": "sum", "column": column}
@@ -281,7 +283,7 @@ def extract_headers_tool(sheet_id: str, google_id: str) -> Dict[str, str]:
     """Extract headers from a Google Sheet, save to CSV, and upload to MinIO"""
     sheet_name = next((sheet['name'] for sheet in list_google_sheets(google_id) if sheet['id'] == sheet_id), None)
     if not sheet_name:
-        raise ValueError("Sheet not found")
+        raise ValueError("No sheets found. Did you connect Google Sheets?")
     csv_filepath = extract_headers_to_csv(sheet_id, google_id, sheet_name)
     file_url = upload_to_minio(csv_filepath, sheet_id, google_id, sheet_name)
     return {"file_url": file_url, "sheet_name": sheet_name}
