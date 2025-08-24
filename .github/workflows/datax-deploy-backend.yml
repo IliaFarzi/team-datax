@@ -82,9 +82,11 @@ jobs:
             echo "DATAX_MINIO_BUCKET_SHEETS=${{ secrets.DATAX_MINIO_BUCKET_SHEETS }}" >> .env.datax
             echo "DATAX_MINIO_BUCKET_UPLOADS=${{ secrets.DATAX_MINIO_BUCKET_UPLOADS }}" >> .env.datax
 
-            docker compose -f docker-compose.yml down
+            # Stop and remove old container if exists
+            docker rm -f datax-backend || true
+
+            # Recreate services
             docker compose -f docker-compose.yml pull
             docker compose -f docker-compose.yml up -d
-
 
             echo "✅ Deployment successful! Visit: http://62.60.198.4:8040"
