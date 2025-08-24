@@ -1,9 +1,13 @@
-name: datax-deploy
+name: datax-deploy-backend
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'api/**'
+      - '.github\workflows\datax-deploy-backend.yml'
+
 
 jobs:
   build_and_push:
@@ -51,17 +55,7 @@ jobs:
           port: 32222
           key: ${{ secrets.VPS_PRIVATE_KEY }}
           script: |
-            cd /home/overall/vsp/multi
-
-            # Create shared network if it doesn't exist
-            docker network ls | grep -w multi-team-dev-deployment_shared-net || docker network create multi-team-dev-deployment_shared-net
-
-            if [ ! -d "datax" ]; then
-              git clone https://github.com/mohammad-heidary/team-datax datax
-            fi
-
-            cd datax
-            git pull origin main
+            cd /home/datax-backend
 
             # Create .env.datax file with environment variables
             echo "OPENROUTER_API_BASE=${{ secrets.OPENROUTER_API_BASE }}" > .env.datax
