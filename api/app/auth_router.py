@@ -2,8 +2,10 @@
 from fastapi import APIRouter, HTTPException, Request, Depends, Body
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordBearer
+
 from pydantic import BaseModel, EmailStr
 from typing import List, Dict, Any
+import random
 
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
@@ -26,6 +28,7 @@ from minio.error import S3Error
 from api.app.database import db, get_minio_client, ensure_bucket, minio_file_url, DATAX_MINIO_BUCKET_SHEETS
 from api.app.agent import get_agent
 from api.app.chat_router import sessions, DEFAULT_MODEL, WELCOME_MESSAGE
+from api.app.email_config import send_verification_email
 
 # =========================
 # Environment & constants
@@ -157,14 +160,14 @@ class ExchangeCodeIn(BaseModel):
 # =========================
 # Auth: Email/Password
 # =========================
+
 @auth_router.post("/signup")
-def signup(payload: SignupIn):
+async def signup(payload: SignupIn):
     existing = db["users"].find_one({"email": payload.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # constant code for MVP
-    verification_code = "123456"
+    verification_code = str(random.randint(100000, 999999))
 
     user_doc = {
         "full_name": payload.full_name,
@@ -178,6 +181,10 @@ def signup(payload: SignupIn):
         "google_credentials": None,
     }
     result = db["users"].insert_one(user_doc)
+
+    # ✉️ ارسال ایمیل
+    await send_verification_email(payload.email, verification_code)
+
     token = create_access_token({"sub": str(result.inserted_id)})
     session_id = str(uuid.uuid4())
     sessions[session_id] = {"agent": get_agent(DEFAULT_MODEL)}
