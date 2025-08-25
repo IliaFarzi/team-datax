@@ -182,6 +182,7 @@ async def signup(payload: SignupIn):
         "last_login": None,
         "google_credentials": None,
     }
+    print(f"user_doc : {user_doc}")
     result = db["users"].insert_one(user_doc)
 
     token = create_access_token({"sub": str(result.inserted_id)})
@@ -240,7 +241,7 @@ def login(payload: LoginIn):
             "name": user.get("name")
         }
     }
-    print(login_data)
+    print(f"login_data: {login_data}")
 
     # Redirect to frontend with query params
     redirect_url = (
