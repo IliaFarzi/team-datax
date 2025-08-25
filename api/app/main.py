@@ -28,7 +28,7 @@ app.add_middleware(
     secret_key=SECRET_KEY,
     same_site="none",  
     https_only=False,
-    domain="VPS_HOST"
+    domain="none"
 )
 
 # ✅ CORS middleware
