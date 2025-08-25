@@ -166,7 +166,7 @@ async def signup(payload: SignupIn):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    verification_code = 123456
+    verification_code = "123456"
 
     user_doc = {
         "full_name": payload.full_name,
