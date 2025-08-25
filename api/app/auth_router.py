@@ -35,7 +35,29 @@ load_dotenv(".env")
 # For local testing only. Remove in production.
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "0"
 
-CLIENT_SECRETS_FILE = os.path.join(os.path.dirname(__file__), "client_secret.json")
+# Google OAuth settings from environment variables
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_TOKEN_URI = os.getenv("GOOGLE_TOKEN_URI")
+GOOGLE_AUTH_URI = os.getenv("GOOGLE_AUTH_URI")
+GOOGLE_AUTH_PROVIDER_X509_CERT_URL = os.getenv("GOOGLE_AUTH_PROVIDER_X509_CERT_URL")
+GOOGLE_PROJECT_ID = os.getenv('GOOGLE_PROJECT_ID')
+
+# Check for the existence of variables
+if not all([GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_TOKEN_URI, GOOGLE_AUTH_URI, GOOGLE_AUTH_PROVIDER_X509_CERT_URL,GOOGLE_PROJECT_ID]):
+    raise ValueError("Missing Google OAuth environment variables")
+
+# Client settings for Flow
+client_config = {
+    "web": {
+        "client_id": GOOGLE_CLIENT_ID,
+        "project_id": GOOGLE_PROJECT_ID,
+        "client_secret": GOOGLE_CLIENT_SECRET,
+        "auth_uri": GOOGLE_AUTH_URI,
+        "token_uri": GOOGLE_TOKEN_URI,
+        "auth_provider_x509_cert_url": GOOGLE_AUTH_PROVIDER_X509_CERT_URL
+    }
+}
 
 # Frontend callback where Google redirects after Sheets consent
 FRONTEND_URL = os.getenv("FRONTEND_URL")
@@ -286,7 +308,7 @@ def connect_google_sheets():
     The frontend route (e.g. /google-sheets/callback) receives ?code=... from Google.
     """
     flow = Flow.from_client_secrets_file(
-        CLIENT_SECRETS_FILE,
+        client_config,
         scopes=SCOPES_SHEETS,
         redirect_uri=FRONTEND_SHEETS_CALLBACK,  # <-- Google will return to frontend
     )
@@ -305,7 +327,7 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
     """
     # 1) Exchange code for tokens (redirect_uri must match the one used in /connect-google-sheets)
     flow = Flow.from_client_secrets_file(
-        CLIENT_SECRETS_FILE,
+        client_config,
         scopes=SCOPES_SHEETS,
         redirect_uri=FRONTEND_SHEETS_CALLBACK,
     )
