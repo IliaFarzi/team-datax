@@ -17,6 +17,7 @@ load_dotenv(".env")
 
 SECRET_KEY = os.getenv("SESSION_SECRET_KEY")
 VPS_HOST=os.getenv('VPS_HOST')
+VPS_URL=os.getenv('VPS_URL')
 FRONTEND_URL = os.getenv("FRONTEND_URL")  
 
 app = FastAPI(title="Smart Support Chatbot", description="API for chat, file upload, Google Sheets integration, and data analysis")
@@ -34,7 +35,7 @@ app.add_middleware(
 # ✅ CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL, VPS_HOST],
+    allow_origins=[FRONTEND_URL, VPS_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
