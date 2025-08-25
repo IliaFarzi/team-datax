@@ -112,22 +112,25 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
     user_id = decode_token(token)
+    print(f"Decoded user_id from token: {user_id}")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token")
     user = db["users"].find_one({"_id": ObjectId(user_id)})
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+    print(f"Found user: {user}")
     return user
 
 # =========================
 # Helper: extract email from JWT
 # =========================
+
 def get_current_email_from_session(user: Dict[str, Any] = Depends(get_current_user)) -> str:
     email = user.get("email")
+    print(f"Extracted email: {email}")
     if not email:
         raise HTTPException(status_code=400, detail="Email not found in session")
     return email
-
 
 # =========================
 # Models
@@ -256,8 +259,9 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    if payload.code != user.get("verification_code"):
-        # You can also redirect this to the failure callback if needed.
+    stored_code = user.get("verification_code")
+    print(f"Stored verification code: {stored_code}")
+    if payload.code != stored_code:
         raise HTTPException(status_code=400, detail="Invalid verification code")
     
     db["users"].update_one(
