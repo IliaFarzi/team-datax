@@ -28,7 +28,6 @@ from minio.error import S3Error
 from api.app.database import db, get_minio_client, ensure_bucket, minio_file_url, DATAX_MINIO_BUCKET_SHEETS
 from api.app.agent import get_agent
 from api.app.chat_router import sessions, DEFAULT_MODEL, WELCOME_MESSAGE
-from api.app.email_config import send_verification_email
 
 # =========================
 # Environment & constants
@@ -167,7 +166,7 @@ async def signup(payload: SignupIn):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    verification_code = str(random.randint(100000, 999999))
+    verification_code = 123456
 
     user_doc = {
         "full_name": payload.full_name,
@@ -181,9 +180,6 @@ async def signup(payload: SignupIn):
         "google_credentials": None,
     }
     result = db["users"].insert_one(user_doc)
-
-    # ✉️ ارسال ایمیل
-    await send_verification_email(payload.email, verification_code)
 
     token = create_access_token({"sub": str(result.inserted_id)})
     session_id = str(uuid.uuid4())
