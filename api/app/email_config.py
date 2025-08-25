@@ -1,3 +1,4 @@
+#api/app/email_config.py
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from pydantic import EmailStr
 from dotenv import load_dotenv
@@ -12,14 +13,13 @@ conf = ConnectionConfig(
     MAIL_PORT=int(os.getenv("MAIL_PORT", 587)),
     MAIL_SERVER=os.getenv("MAIL_SERVER"),
     MAIL_FROM_NAME=os.getenv("MAIL_FROM_NAME", "App Support"),
-    MAIL_TLS=os.getenv("MAIL_TLS", "True") == "True",
-    MAIL_SSL=os.getenv("MAIL_SSL", "False") == "True",
+    MAIL_STARTTLS=os.getenv("MAIL_STARTTLS", "True") == "True",
+    MAIL_SSL_TLS=os.getenv("MAIL_SSL_TLS", "False") == "True",
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=True
 )
 
 fm = FastMail(conf)
-
 
 async def send_verification_email(to_email: EmailStr, code: str):
     subject = "Verify your account"

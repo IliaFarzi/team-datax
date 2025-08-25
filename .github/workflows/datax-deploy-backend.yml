@@ -96,8 +96,8 @@ jobs:
             echo "MAIL_PORT=${{ secrets.MAIL_PORT }}" >> .env.datax
             echo "MAIL_SERVER=${{ secrets.MAIL_SERVER }}" >> .env.datax
             echo "MAIL_FROM_NAME=${{ secrets.MAIL_FROM_NAME }}" >> .env.datax
-            echo "MAIL_TLS=${{ secrets.MAIL_TLS }}" >> .env.datax
-            echo "MAIL_SSL=${{ secrets.MAIL_SSL }}" >> .env.datax
+            echo "MAIL_STARTTLS=${{ secrets.MAIL_STARTTLS }}" >> .env.datax
+            echo "MAIL_SSL_TLS=${{ secrets.MAIL_SSL_TLS }}" >> .env.datax
 
             # Stop and remove old container if exists
             docker rm -f datax-backend || true
