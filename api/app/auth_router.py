@@ -185,6 +185,7 @@ async def signup(payload: SignupIn):
     print(f"user_doc : {user_doc}")
     result = db["users"].insert_one(user_doc)
 
+    # ⚡ Now we put the real user_id in the token
     token = create_access_token({"sub": str(result.inserted_id)})
     session_id = str(uuid.uuid4())
     sessions[session_id] = {"agent": get_agent(DEFAULT_MODEL)}
@@ -194,7 +195,9 @@ async def signup(payload: SignupIn):
 
     success = {
         "message": "Signup successful. Please verify your account with the code.",
-        "user_id": str(result.inserted_id)
+        "user_id": str(result.inserted_id),
+        "token": token,
+        "token_type": "bearer"
     }
 
     print(success)  # Just logs to console
