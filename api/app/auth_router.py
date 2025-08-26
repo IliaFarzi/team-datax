@@ -111,15 +111,18 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
-    user_id = decode_token(token)
+    user_id = decode_token(token)  # الان user_id واقعی میاد
     print(f"Decoded user_id from token: {user_id}")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token")
-    user = db["users"].find_one({"_id": ObjectId(user_id)})
+    try:
+        user = db["users"].find_one({"_id": ObjectId(user_id)})
+    except:
+        raise HTTPException(status_code=401, detail="Invalid user id in token")
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
-    print(f"Found user: {user}")
     return user
+
 
 # =========================
 # Helper: extract email from JWT
@@ -281,8 +284,7 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
     
     db["users"].update_one(
         {"_id": user["_id"]},
-        {"$set": {"is_verified": True}}
-    )
+        {"$set": {"is_verified": True}, "verified_at": datetime.now(timezone.utc)})
     success = {"message": "Account verified successfully", "email": email}
     # Log + Redirect
     print({"message": "Account verified successfully", "email": email})
