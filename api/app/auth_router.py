@@ -199,11 +199,11 @@ async def signup(payload: SignupIn):
 
     print(success)  # Just logs to console
     # Redirect to frontend with query parameters
-    redirect_url = (
-        f"{FRONTEND_URL}/auth/callback"
-        f"?token={token}&session_id={session_id}&name={payload.full_name}&email={payload.email}"
-    )
-    return RedirectResponse(url=redirect_url, status_code=302)
+   #  redirect_url = (
+    #    f"{FRONTEND_URL}/auth/callback"
+     #   f"?token={token}&session_id={session_id}&name={payload.full_name}&email={payload.email}"
+   # )
+    return success
 
 @auth_router.post("/login")
 def login(payload: LoginIn):
@@ -243,13 +243,24 @@ def login(payload: LoginIn):
     }
     print(f"login_data: {login_data}")
 
+    success = {
+    "message": "Login successful",
+    "token": token,
+    "session_id": session_id,
+    "user": {
+        "id": str(user["_id"]),
+        "email": user["email"],
+        "name": user.get("name")
+    }
+    }
+
     # Redirect to frontend with query params
-    redirect_url = (
-        f"{FRONTEND_URL}/auth/callback"
-        f"?token={token}&session_id={session_id}"
-        f"&name={user.get('name', '')}&email={user['email']}"
-    )
-    return RedirectResponse(url=redirect_url, status_code=302)
+#    redirect_url = (
+ #       f"{FRONTEND_URL}/auth/callback"
+  #      f"?token={token}&session_id={session_id}"
+   #     f"&name={user.get('name', '')}&email={user['email']}"
+   # )
+    return success
 
 # =========================
 # /auth/verify  (Only code comes from the frontend; email from JWT)
@@ -269,11 +280,11 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
         {"_id": user["_id"]},
         {"$set": {"is_verified": True}}
     )
-
+    success = {"message": "Account verified successfully", "email": email}
     # Log + Redirect
     print({"message": "Account verified successfully", "email": email})
-    redirect_url = f"{FRONTEND_URL}/auth/verify-callback?status=success&email={email}"
-    return RedirectResponse(url=redirect_url, status_code=302)
+  #  redirect_url = f"{FRONTEND_URL}/auth/verify-callback?status=success&email={email}"
+    return success
 
 @auth_router.post("/forgot-password")
 def forgot_password(payload: ForgotPasswordIn):
@@ -281,10 +292,11 @@ def forgot_password(payload: ForgotPasswordIn):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    forget_link = f"{FRONTEND_URL}/reset-password?email={payload.email}"
-    print({"message": "Password forget link generated", "forget_link":forget_link})
-
-    return RedirectResponse(url=forget_link, status_code=302)
+    reset_token = create_access_token({"sub": str(user["_id"])}, expires_delta=timedelta(minutes=15))
+    reset_link = f"{FRONTEND_URL}/reset-password?token={reset_token}"
+    print({"message": "Password forget link generated", "forget_link":reset_link})
+    success = {"message": "Password forget link generated", "forget_link":reset_link}
+    return success
 
 # =========================
 # /auth/verify  (Only code comes from the frontend; email from JWT)
@@ -299,11 +311,11 @@ def reset_password(payload: ResetPasswordIn, email: str = Depends(get_current_em
         {"_id": user["_id"]},
         {"$set": {"password_hash": hash_password(payload.new_password)}}
     )
-
+    success = {"message": "Password reset successful", "email": email}
     # Log + Redirect
     print({"message": "Password reset successful", "email": email})
-    redirect_url = f"{FRONTEND_URL}/reset-success?email={email}"
-    return RedirectResponse(url=redirect_url, status_code=302)
+#    redirect_url = f"{FRONTEND_URL}/reset-success?email={email}"
+    return success
 
 
 # ====================================================
