@@ -284,7 +284,9 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
     
     db["users"].update_one(
         {"_id": user["_id"]},
-        {"$set": {"is_verified": True}, "verified_at": datetime.now(timezone.utc)})
+        {"$set": {
+        "is_verified": True,
+        "verified_at": datetime.now(timezone.utc)}})
     success = {"message": "Account verified successfully", "email": email}
     # Log + Redirect
     print({"message": "Account verified successfully", "email": email})
