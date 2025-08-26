@@ -347,12 +347,12 @@ def connect_google_sheets():
     Start Google OAuth for Sheets. We set the redirect_uri to the FRONTEND callback.
     The frontend route (e.g. /google-sheets/callback) receives ?code=... from Google.
     """
-    flow = Flow.from_client_secrets_file(
+    flow = Flow.from_client_config(
         client_config,
         scopes=SCOPES_SHEETS,
         redirect_uri=FRONTEND_SHEETS_CALLBACK,  # <-- Google will return to frontend
     )
-    auth_url, _ = flow.authorization_url(prompt="consent", include_granted_scopes="true")
+    auth_url, state = flow.authorization_url(prompt="consent", include_granted_scopes="true")
     # Option A: redirect user immediately
     return RedirectResponse(auth_url)
     # Option B: return {"auth_url": auth_url} and let frontend perform window.location = auth_url
@@ -366,7 +366,7 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
     and stores metadata for frontend display.
     """
     # 1) Exchange code for tokens (redirect_uri must match the one used in /connect-google-sheets)
-    flow = Flow.from_client_secrets_file(
+    flow = Flow.from_client_config(
         client_config,
         scopes=SCOPES_SHEETS,
         redirect_uri=FRONTEND_SHEETS_CALLBACK,
