@@ -204,11 +204,6 @@ async def signup(payload: SignupIn):
     }
 
     print(success)  # Just logs to console
-    # Redirect to frontend with query parameters
-   #  redirect_url = (
-    #    f"{FRONTEND_URL}/auth/callback"
-     #   f"?token={token}&session_id={session_id}&name={payload.full_name}&email={payload.email}"
-   # )
     return success
 
 @auth_router.post("/login")
@@ -247,7 +242,6 @@ def login(payload: LoginIn):
             "name": user.get("name")
         }
     }
-    print(f"login_data: {login_data}")
 
     success = {
     "message": "Login successful",
@@ -259,13 +253,7 @@ def login(payload: LoginIn):
         "name": user.get("name")
     }
     }
-
-    # Redirect to frontend with query params
-#    redirect_url = (
- #       f"{FRONTEND_URL}/auth/callback"
-  #      f"?token={token}&session_id={session_id}"
-   #     f"&name={user.get('name', '')}&email={user['email']}"
-   # )
+    print(success)
     return success
 
 # =========================
@@ -278,7 +266,6 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
         raise HTTPException(status_code=404, detail="User not found")
     
     stored_code = user.get("verification_code")
-    print(f"Stored verification code: {stored_code}")
     if payload.code != stored_code:
         raise HTTPException(status_code=400, detail="Invalid verification code")
     
@@ -287,12 +274,19 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
         {"$set": {
         "is_verified": True,
         "verified_at": datetime.now(timezone.utc)}})
-    success = {"message": "Account verified successfully", "email": email}
-    # Log + Redirect
-    print({"message": "Account verified successfully", "email": email})
-  #  redirect_url = f"{FRONTEND_URL}/auth/verify-callback?status=success&email={email}"
+    success = {
+    "message": "Account verified successfully",
+    "email": user.get("email"),
+    "id": str(user["_id"]),
+    "created_at": user.get("created_at"),
+    "is_verified": user.get("is_verified"),}
+
+    print(success)
     return success
 
+# =========================
+# /auth/forgot-password
+# =========================
 @auth_router.post("/forgot-password")
 def forgot_password(payload: ForgotPasswordIn):
     user = db["users"].find_one({"email": payload.email})
@@ -301,12 +295,23 @@ def forgot_password(payload: ForgotPasswordIn):
     
     reset_token = create_access_token({"sub": str(user["_id"])}, expires_delta=timedelta(minutes=15))
     reset_link = f"{FRONTEND_URL}/reset-password?token={reset_token}"
-    print({"message": "Password forget link generated", "forget_link":reset_link})
-    success = {"message": "Password forget link generated", "forget_link":reset_link}
+    
+    success = {
+        "message": "Password reset link generated successfully",
+        "email": user.get("email"),
+        "user_id": str(user["_id"]),
+        "reset_link": reset_link
+    }
+    
+    # Log
+    print(success)
+   # print(f"[FORGOT-PASSWORD] Reset link generated for user {user.get('email')} | link: {reset_link}")
+    
     return success
 
+
 # =========================
-# /auth/verify  (Only code comes from the frontend; email from JWT)
+# /auth/reset-password
 # =========================
 @auth_router.post("/reset-password")
 def reset_password(payload: ResetPasswordIn, email: str = Depends(get_current_email_from_session)):
@@ -318,11 +323,19 @@ def reset_password(payload: ResetPasswordIn, email: str = Depends(get_current_em
         {"_id": user["_id"]},
         {"$set": {"password_hash": hash_password(payload.new_password)}}
     )
-    success = {"message": "Password reset successful", "email": email}
-    # Log + Redirect
-    print({"message": "Password reset successful", "email": email})
-#    redirect_url = f"{FRONTEND_URL}/reset-success?email={email}"
+    
+    success = {
+        "message": "Password reset successful",
+        "email": email,
+        "user_id": str(user["_id"])
+    }
+    
+    # Log
+    print(success)
+  #  print(f"[RESET-PASSWORD] User {email} successfully reset password at {datetime.now(timezone.utc)}")
+    
     return success
+
 
 
 # ====================================================
