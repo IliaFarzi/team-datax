@@ -26,7 +26,6 @@ from dotenv import load_dotenv
 from minio.error import S3Error
 
 from api.app.database import db, get_minio_client, ensure_bucket, minio_file_url, DATAX_MINIO_BUCKET_SHEETS
-from api.app.agent import get_agent
 from api.app.chat_router import sessions, DEFAULT_MODEL, WELCOME_MESSAGE
 
 # =========================
@@ -168,6 +167,7 @@ class ExchangeCodeIn(BaseModel):
 
 @auth_router.post("/signup")
 async def signup(payload: SignupIn):
+    from api.app.agent import get_agent  # Lazy import
     existing = db["users"].find_one({"email": payload.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -208,6 +208,7 @@ async def signup(payload: SignupIn):
 
 @auth_router.post("/login")
 def login(payload: LoginIn):
+    from api.app.agent import get_agent  # Lazy import
     # Find user by email
     user = db["users"].find_one({"email": payload.email})
     if not user or not verify_password(payload.password, user.get("password_hash", "")):

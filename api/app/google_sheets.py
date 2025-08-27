@@ -5,7 +5,6 @@ from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
 
 from api.app.database import db, get_minio_client,DATAX_MINIO_BUCKET_SHEETS
-from api.app.auth_router import get_current_user
 
 import os
 from datetime import datetime, timezone
@@ -94,6 +93,7 @@ def list_private_sheets(google_id: str) -> List[str]:
     ).execute().get("files", [])
     return [f["name"] for f in results if f.get("owners", [{}])[0].get("me", True)]
 
+from api.app.auth_router import get_current_user  # Lazy import
 @google_sheets_preview_router.get("/")
 async def list_sheets(user=Depends(get_current_user)):
     """List user's Google Sheets files"""
