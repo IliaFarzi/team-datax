@@ -14,5 +14,5 @@ DEFAULT_MODEL = "mistralai/mistral-small-3.2-24b-instruct"
 def initialize_session():
     session_id = str(uuid.uuid4())
     sessions[session_id] = {"agent": get_agent(DEFAULT_MODEL)}
-    save_message(session_id, "assistant", WELCOME_MESSAGE)
-    return session_id
+    saving_message = save_message(session_id, "assistant", WELCOME_MESSAGE)
+    return session_id, sessions[session_id], saving_message

@@ -190,12 +190,7 @@ async def signup(payload: SignupIn):
 
     # ⚡ Now we put the real user_id in the token
     token = create_access_token({"sub": str(result.inserted_id)})
-    session_id = initialize_session()
-    sessions[session_id] = {"agent": get_agent(DEFAULT_MODEL)}
-
-    from api.app.database import save_message
-    save_message(session_id, "assistant", WELCOME_MESSAGE)
-
+    session_id, sessions[session_id], saving_message = initialize_session()
     success = {
         "message": "Signup successful. Please verify your account with the code.",
         "user_id": str(result.inserted_id),
@@ -226,11 +221,7 @@ def login(payload: LoginIn):
 
     # Generate JWT token and create session
     token = create_access_token({"sub": str(user["_id"])})
-    session_id = initialize_session()
-    sessions[session_id] = {"agent": get_agent(DEFAULT_MODEL)}
-
-    from api.app.database import save_message
-    save_message(session_id, "assistant", WELCOME_MESSAGE)
+    session_id, sessions[session_id], saving_message = initialize_session()
 
     # Log data for backend debugging
     login_data = {

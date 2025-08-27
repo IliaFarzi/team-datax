@@ -4,8 +4,7 @@ import traceback
 
 from api.app.models import UserMessage
 from api.app.database import save_message, get_history
-from api.app.agent import get_agent
-from api.app.config import sessions, DEFAULT_MODEL
+from api.app.config import sessions, DEFAULT_MODEL, WELCOME_MESSAGE, initialize_session
 
 chat_router = APIRouter(prefix="/Chat", tags=['Chat with LLM'])
 
@@ -17,7 +16,7 @@ def send_message(message: UserMessage, request:Request):
     
     # If the session does not exist, create it
     if session_id not in sessions:
-        sessions[session_id] = {"agent": get_agent(DEFAULT_MODEL)}
+        _, sessions[session_id], _ = initialize_session()
 
     session = sessions.get(session_id)
     if not session:
