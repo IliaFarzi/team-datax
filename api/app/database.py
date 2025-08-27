@@ -1,7 +1,7 @@
 #api/app/database.py
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-from pymongo.errors import OperationFailure, ConnectionError
+from pymongo.errors import OperationFailure, ConnectionFailure
 from pymongo.server_api import ServerApi
 
 import os
@@ -34,14 +34,14 @@ def get_mongo_client() -> MongoClient:
     Returns:
         MongoClient: A MongoDB client instance.
     Raises:
-        ConnectionError: If connection to MongoDB fails.
+        ConnectionFailure: If connection to MongoDB fails.
     """
     try:
         client = MongoClient(DATAX_MONGO_URI, server_api=ServerApi('1'))
         client.admin.command('ping')
         logger.info("✅ Pinged your deployment. Connected to MongoDB successfully!")
         return client
-    except ConnectionError as e:
+    except ConnectionFailure as e:
         logger.error(f"❌ Failed to connect to MongoDB: {e}")
         raise
     except Exception as e:
@@ -55,7 +55,7 @@ def ensure_mongo_collections() -> tuple:
         tuple: (MongoClient, database, chat_sessions_collection, users_collection)
     Raises:
         ValueError: If environment variables are missing.
-        ConnectionError: If connection to MongoDB fails.
+        ConnectionFailure: If connection to MongoDB fails.
     """
     try:
         client = get_mongo_client()
