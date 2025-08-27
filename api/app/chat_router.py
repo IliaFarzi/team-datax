@@ -4,7 +4,7 @@ import traceback
 
 from api.app.models import UserMessage
 from api.app.database import ensure_mongo_collections
-from api.app.config import sessions, DEFAULT_MODEL, WELCOME_MESSAGE, initialize_session
+from api.app.session_manager import sessions, initialize_session
 
 client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
 

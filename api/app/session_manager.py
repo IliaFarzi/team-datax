@@ -1,7 +1,5 @@
 # api/app/config.py
 import uuid
-from api.app.agent import get_agent
-from api.app.chat_router import save_message
 
 sessions = {}
 DEFAULT_MODEL = "some_model"
@@ -12,6 +10,8 @@ WELCOME_MESSAGE = "👋 **Welcome!** How can I help you today?"
 DEFAULT_MODEL = "mistralai/mistral-small-3.2-24b-instruct"
 
 def initialize_session():
+    from api.app.agent import get_agent #lazy import
+    from api.app.chat_router import save_message #lazy import
     session_id = str(uuid.uuid4())
     sessions[session_id] = {"agent": get_agent(DEFAULT_MODEL)}
     saving_message = save_message(session_id, "assistant", WELCOME_MESSAGE)

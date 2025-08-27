@@ -8,7 +8,6 @@ import tempfile
 from datetime import datetime, timezone
 
 from api.app.database import ensure_mongo_collections, get_minio_client, DATAX_MINIO_ENDPOINT, DATAX_MINIO_BUCKET_UPLOADS
-from api.app.models import AnalyzeUploadedFileArgs, ListUploadedFilesArgs
 
 load_dotenv(".env")
 
