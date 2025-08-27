@@ -293,7 +293,7 @@ def forgot_password(payload: ForgotPasswordIn):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    reset_token = create_access_token({"sub": str(user["_id"])}, expires_delta=timedelta(minutes=15))
+    reset_token = create_access_token({"sub": str(user["_id"])})
     reset_link = f"{FRONTEND_URL}/reset-password?token={reset_token}"
     
     success = {
