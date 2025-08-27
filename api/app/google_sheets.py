@@ -4,8 +4,6 @@ from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
 
-from api.app.database import db, get_minio_client,DATAX_MINIO_BUCKET_SHEETS
-
 import os
 from datetime import datetime, timezone
 from typing import Dict, List, Any
@@ -17,6 +15,10 @@ from fastapi import BackgroundTasks
 
 from minio import Minio
 from minio.error import S3Error
+
+from api.app.database import ensure_mongo_collections, get_minio_client,DATAX_MINIO_BUCKET_SHEETS
+
+client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
 
 google_sheets_preview_router = APIRouter(prefix="/sheets", tags=["Google Sheets for tools"])
 

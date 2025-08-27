@@ -3,8 +3,10 @@ from fastapi import APIRouter, HTTPException, Request
 import traceback
 
 from api.app.models import UserMessage
-from api.app.database import save_message, get_history
+from api.app.database import ensure_mongo_collections
 from api.app.config import sessions, DEFAULT_MODEL, WELCOME_MESSAGE, initialize_session
+
+client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
 
 chat_router = APIRouter(prefix="/Chat", tags=['Chat with LLM'])
 
@@ -54,6 +56,30 @@ def send_message(message: UserMessage, request:Request):
         # Even if processing fails, the user message is already saved.
     return {"response": output}
 
+def save_message(session_id: str, role: str, content: str):
+    try:
+        result = chat_sessions_collection.update_one(
+            {"session_id": session_id},
+            {
+                "$push": {"messages": {"role": role, "content": content}},
+                "$setOnInsert": {"session_id": session_id}
+            },
+            upsert=True
+        )
+    except Exception as e:
+        print(f"❗ Error saving message to MongoDB for session {session_id}: {e}")
+
+
+def get_history(session_id: str) -> list:
+    try:
+        document = chat_sessions_collection.find_one({"session_id": session_id})
+        if document and "messages" in document:
+            return document["messages"]
+        return []
+    except Exception as e:
+        print(f"❗ Error retrieving history from MongoDB for session {session_id}: {e}")
+        return []
+    
 @chat_router.get("/get_history/{session_id}")
 def get_chat_history(session_id: str):
     session = sessions.get(session_id)

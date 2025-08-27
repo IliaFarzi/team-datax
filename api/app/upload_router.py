@@ -7,12 +7,13 @@ from dotenv import load_dotenv
 import tempfile
 from datetime import datetime, timezone
 
-from api.app.database import db, get_minio_client, DATAX_MINIO_ENDPOINT, DATAX_MINIO_BUCKET_UPLOADS
+from api.app.database import ensure_mongo_collections, get_minio_client, DATAX_MINIO_ENDPOINT, DATAX_MINIO_BUCKET_UPLOADS
 from api.app.models import AnalyzeUploadedFileArgs, ListUploadedFilesArgs
 
-
-
 load_dotenv(".env")
+
+client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
+
 
 upload_router = APIRouter(prefix="/upload", tags=["File Upload"])
 

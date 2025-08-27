@@ -83,3 +83,30 @@ class AnalyzeUploadedFileArgs(BaseModel):
 
 class ListUploadedFilesArgs(BaseModel):
     google_id: str
+
+
+# =========================
+# Models
+# =========================
+class SignupIn(BaseModel):
+    full_name: str   
+    email: EmailStr
+    phone: str
+    password: str
+
+
+class LoginIn(BaseModel):
+    email: EmailStr
+    password: str
+
+class VerifyIn(BaseModel):
+    code: str  # email will be taken from token
+
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+class ResetPasswordIn(BaseModel):
+    new_password: str  # email will be taken from token
+
+class ExchangeCodeIn(BaseModel):
+    code: str

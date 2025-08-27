@@ -1,7 +1,7 @@
 # api/app/config.py
 import uuid
 from api.app.agent import get_agent
-from api.app.database import save_message
+from api.app.chat_router import save_message
 
 sessions = {}
 DEFAULT_MODEL = "some_model"

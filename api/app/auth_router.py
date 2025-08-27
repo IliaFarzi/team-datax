@@ -25,13 +25,16 @@ from dotenv import load_dotenv
 
 from minio.error import S3Error
 
-from api.app.database import db, get_minio_client, ensure_bucket, minio_file_url, DATAX_MINIO_BUCKET_SHEETS
+from api.app.database import ensure_mongo_collections, get_minio_client, ensure_bucket, minio_file_url, DATAX_MINIO_BUCKET_SHEETS
 from api.app.config import sessions, DEFAULT_MODEL, WELCOME_MESSAGE, initialize_session
+from api.app.models import SignupIn, LoginIn, VerifyIn, ForgotPasswordIn, ResetPasswordIn, ExchangeCodeIn
 
 # =========================
 # Environment & constants
 # =========================
 load_dotenv(".env")
+
+client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
 
 # For local testing only. Remove in production.
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "0"
@@ -133,33 +136,6 @@ def get_current_email_from_session(user: Dict[str, Any] = Depends(get_current_us
     if not email:
         raise HTTPException(status_code=400, detail="Email not found in session")
     return email
-
-# =========================
-# Models
-# =========================
-class SignupIn(BaseModel):
-    full_name: str   
-    email: EmailStr
-    phone: str
-    password: str
-
-
-class LoginIn(BaseModel):
-    email: EmailStr
-    password: str
-
-class VerifyIn(BaseModel):
-    code: str  # email will be taken from token
-
-class ForgotPasswordIn(BaseModel):
-    email: EmailStr
-
-class ResetPasswordIn(BaseModel):
-    new_password: str  # email will be taken from token
-
-class ExchangeCodeIn(BaseModel):
-    code: str
-
 
 # =========================
 # Auth: Email/Password
