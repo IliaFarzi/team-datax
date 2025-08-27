@@ -26,7 +26,7 @@ from dotenv import load_dotenv
 from minio.error import S3Error
 
 from api.app.database import db, get_minio_client, ensure_bucket, minio_file_url, DATAX_MINIO_BUCKET_SHEETS
-from api.app.chat_router import sessions, DEFAULT_MODEL, WELCOME_MESSAGE
+from api.app.config import sessions, DEFAULT_MODEL, WELCOME_MESSAGE, initialize_session
 
 # =========================
 # Environment & constants
@@ -190,7 +190,7 @@ async def signup(payload: SignupIn):
 
     # ⚡ Now we put the real user_id in the token
     token = create_access_token({"sub": str(result.inserted_id)})
-    session_id = str(uuid.uuid4())
+    session_id = initialize_session()
     sessions[session_id] = {"agent": get_agent(DEFAULT_MODEL)}
 
     from api.app.database import save_message
@@ -226,7 +226,7 @@ def login(payload: LoginIn):
 
     # Generate JWT token and create session
     token = create_access_token({"sub": str(user["_id"])})
-    session_id = str(uuid.uuid4())
+    session_id = initialize_session()
     sessions[session_id] = {"agent": get_agent(DEFAULT_MODEL)}
 
     from api.app.database import save_message

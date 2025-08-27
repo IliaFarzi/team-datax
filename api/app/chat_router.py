@@ -5,17 +5,9 @@ import traceback
 from api.app.models import UserMessage
 from api.app.database import save_message, get_history
 from api.app.agent import get_agent
+from api.app.config import sessions, DEFAULT_MODEL
 
 chat_router = APIRouter(prefix="/Chat", tags=['Chat with LLM'])
-sessions = {}
-
-#DEFAULT_MODEL = "mistralai/mistral-7b-instruct"
-#DEFAULT_MODEL = "qwen/qwen2.5-72b-instruct"
-#DEFAULT_MODEL = "mistralai/mistral-nemo"
-DEFAULT_MODEL = "mistralai/mistral-small-3.2-24b-instruct"
-
-
-WELCOME_MESSAGE = "👋 **Welcome!** How can I help you today?"
 
 @chat_router.post("/send_message")
 def send_message(message: UserMessage, request:Request):
