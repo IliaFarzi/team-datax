@@ -3,9 +3,7 @@ from fastapi import APIRouter, HTTPException, Request, Depends, Body
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordBearer
 
-from pydantic import BaseModel, EmailStr
 from typing import List, Dict, Any
-import random
 
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
@@ -16,7 +14,6 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from bson import ObjectId
 
-import uuid
 import os
 import tempfile
 import pandas as pd
