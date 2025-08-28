@@ -1,6 +1,5 @@
 #api/app/upload_router.py
 from fastapi import APIRouter, File, UploadFile, HTTPException, Request
-from minio import Minio
 import pandas as pd
 import os
 from dotenv import load_dotenv
