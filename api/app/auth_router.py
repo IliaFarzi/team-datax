@@ -317,7 +317,8 @@ def connect_google_sheets(user=Depends(get_current_user)):
     )
     auth_url, state = flow.authorization_url(prompt="consent")
     sessions[str(user["_id"])] = {"state": state}
-    return {"auth_url": auth_url}
+    
+    return {"auth_url": auth_url, "state": state}
 
 # Code exchange and data storage
 @auth_router.post("/google-sheets/exchange")
@@ -361,12 +362,12 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
     )
 
     # ingest Sheets
-    uploaded = _ingest_user_sheets_to_minio(user_id=str(user["_id"]), creds=credentials)
+    uploaded_to_minio = _ingest_user_sheets_to_minio(user_id=str(user["_id"]), creds=credentials)
 
     return {
         "message": "Google Sheets connected and ingested successfully",
         "google_email": google_email,
-        "uploaded": uploaded,
+        "uploaded_to_minio": uploaded_to_minio,
     }
 
 
