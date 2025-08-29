@@ -10,8 +10,7 @@ from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2 import id_token
-
-import requests
+from google.auth.transport import requests as google_requests
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -308,35 +307,34 @@ def reset_password(payload: ResetPasswordIn, email: str = Depends(get_current_em
 # ==========================================
 # Connect Google Sheets (redirect + callback combined)
 # ==========================================
+# Begin OAuth
 @auth_router.get("/connect-google-sheets")
-def connect_google_sheets(request: Request, user=Depends(get_current_user)):
+def connect_google_sheets(user=Depends(get_current_user)):
     flow = Flow.from_client_config(
         client_config,
         scopes=SCOPES_SHEETS,
-        redirect_uri=FRONTEND_SHEETS_CALLBACK,  # Google will return here
+        redirect_uri=FRONTEND_SHEETS_CALLBACK,
     )
+    auth_url, state = flow.authorization_url(prompt="consent")
+    sessions[str(user["_id"])] = {"state": state}
+    return {"auth_url": auth_url}
 
-    # STEP 1 → First time (no code): redirect user to Google
-    if "code" not in request.query_params:
-        auth_url, state = flow.authorization_url(prompt="consent")
-        sessions[str(user["_id"])] = {"state": state}
-        return RedirectResponse(auth_url)
-
-    # STEP 2 → After Google redirects back (with code)
+# Code exchange and data storage
+@auth_router.post("/google-sheets/exchange")
+def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_user)):
     state = sessions.get(str(user["_id"]), {}).get("state")
     if not state:
         raise HTTPException(status_code=400, detail="Invalid state")
 
-    try:
-        flow.fetch_token(authorization_response=str(request.url))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Token fetch failed: {e}")
-
+    flow = Flow.from_client_config(
+        client_config,
+        scopes=SCOPES_SHEETS,
+        redirect_uri=FRONTEND_SHEETS_CALLBACK,
+    )
+    flow.fetch_token(code=payload.code)
     credentials = flow.credentials
 
-    # Get user email from Google
-    from google.oauth2 import id_token
-    from google.auth.transport import requests as google_requests
+    # getting Google Email
     id_info = id_token.verify_oauth2_token(
         credentials.id_token,
         google_requests.Request(),
@@ -344,42 +342,7 @@ def connect_google_sheets(request: Request, user=Depends(get_current_user)):
     )
     google_email = id_info.get("email")
 
-    # Save credentials + email to user profile
-    db["users"].update_one(
-        {"_id": user["_id"]},
-        {"$set": {
-            "google_email": google_email,
-            "google_credentials": credentials.to_json(),
-            "sheets_connected_at": datetime.now(timezone.utc)
-        }}
-    )
-
-    # Redirect back to frontend (with success message)
-    redirect_url = f"{FRONTEND_URL}/google-sheets/success?email={google_email}"
-    return RedirectResponse(redirect_url)
-
-
-@auth_router.post("/google-sheets/exchange")
-def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_user)):
-    """
-    Frontend posts the `code` (received in its callback) to this endpoint with Authorization: Bearer <JWT>.
-    Backend exchanges code -> tokens, stores credentials, lists sheets, exports CSV to MinIO,
-    and stores metadata for frontend display.
-    """
-    # 1) Exchange code for tokens (redirect_uri must match the one used in /connect-google-sheets)
-    flow = Flow.from_client_config(
-        client_config,
-        scopes=SCOPES_SHEETS,
-        redirect_uri=FRONTEND_SHEETS_CALLBACK,
-    )
-    try:
-        flow.fetch_token(code=payload.code)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to exchange code: {e}")
-
-    credentials = flow.credentials
-
-    # 2) Persist Google credentials on the user
+    # Saving in Data Base
     creds_dict = {
         "token": credentials.token,
         "refresh_token": credentials.refresh_token,
@@ -390,16 +353,22 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
     }
     db["users"].update_one(
         {"_id": user["_id"]},
-        {"$set": {"google_credentials": creds_dict, "sheets_connected_at": datetime.now(timezone.utc)}},
+        {"$set": {
+            "google_email": google_email,
+            "google_credentials": creds_dict,
+            "sheets_connected_at": datetime.now(timezone.utc)
+        }},
     )
 
-    # 3) Read spreadsheet metadata + export CSVs to MinIO
-    uploaded: List[Dict[str, Any]] = _ingest_user_sheets_to_minio(user_id=str(user["_id"]), creds=credentials)
+    # ingest Sheets
+    uploaded = _ingest_user_sheets_to_minio(user_id=str(user["_id"]), creds=credentials)
 
     return {
         "message": "Google Sheets connected and ingested successfully",
-        "uploaded": uploaded,  # list of files with urls & metadata
+        "google_email": google_email,
+        "uploaded": uploaded,
     }
+
 
 
 def _refresh_credentials_if_needed(creds_dict: Dict[str, Any]) -> Dict[str, Any]:
