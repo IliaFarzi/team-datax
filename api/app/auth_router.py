@@ -9,6 +9,9 @@ from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request as GoogleRequest
+from google.oauth2 import id_token
+
+import requests
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -302,25 +305,58 @@ def reset_password(payload: ResetPasswordIn, email: str = Depends(get_current_em
     return success
 
 
-
-# ====================================================
-# Google Sheets Connect (separate from login/signup)
-# ====================================================
+# ==========================================
+# Connect Google Sheets (redirect + callback combined)
+# ==========================================
 @auth_router.get("/connect-google-sheets")
-def connect_google_sheets():
-    """
-    Start Google OAuth for Sheets. We set the redirect_uri to the FRONTEND callback.
-    The frontend route (e.g. /google-sheets/callback) receives ?code=... from Google.
-    """
+def connect_google_sheets(request: Request, user=Depends(get_current_user)):
     flow = Flow.from_client_config(
         client_config,
         scopes=SCOPES_SHEETS,
-        redirect_uri=FRONTEND_SHEETS_CALLBACK,  # <-- Google will return to frontend
+        redirect_uri=FRONTEND_SHEETS_CALLBACK,  # Google will return here
     )
-    auth_url, state = flow.authorization_url(prompt="consent", include_granted_scopes="true")
-    # Option A: redirect user immediately
-    return RedirectResponse(auth_url)
-    # Option B: return {"auth_url": auth_url} and let frontend perform window.location = auth_url
+
+    # STEP 1 → First time (no code): redirect user to Google
+    if "code" not in request.query_params:
+        auth_url, state = flow.authorization_url(prompt="consent")
+        sessions[str(user["_id"])] = {"state": state}
+        return RedirectResponse(auth_url)
+
+    # STEP 2 → After Google redirects back (with code)
+    state = sessions.get(str(user["_id"]), {}).get("state")
+    if not state:
+        raise HTTPException(status_code=400, detail="Invalid state")
+
+    try:
+        flow.fetch_token(authorization_response=str(request.url))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Token fetch failed: {e}")
+
+    credentials = flow.credentials
+
+    # Get user email from Google
+    from google.oauth2 import id_token
+    from google.auth.transport import requests as google_requests
+    id_info = id_token.verify_oauth2_token(
+        credentials.id_token,
+        google_requests.Request(),
+        client_config["web"]["client_id"]
+    )
+    google_email = id_info.get("email")
+
+    # Save credentials + email to user profile
+    db["users"].update_one(
+        {"_id": user["_id"]},
+        {"$set": {
+            "google_email": google_email,
+            "google_credentials": credentials.to_json(),
+            "sheets_connected_at": datetime.now(timezone.utc)
+        }}
+    )
+
+    # Redirect back to frontend (with success message)
+    redirect_url = f"{FRONTEND_URL}/google-sheets/success?email={google_email}"
+    return RedirectResponse(redirect_url)
 
 
 @auth_router.post("/google-sheets/exchange")
@@ -470,10 +506,23 @@ def _ingest_user_sheets_to_minio(user_id: str, creds: Credentials) -> List[Dict[
 @auth_router.get("/sheets")
 def list_my_sheets(user=Depends(get_current_user)):
     owner_id = str(user["_id"])
+    google_email = user.get("google_email")
+
+    query = {"$or": [{"owner_id": owner_id}]}
+
+    if google_email:
+        query["$or"].append({"google_email": google_email})
+
     items = list(
         db["spreadsheet_metadata"].find(
-            {"owner_id": owner_id},
+            query,
             {"_id": 0}
         )
     )
-    return {"sheets": items}
+
+    return {
+        "sheets": items,
+        "count": len(items),
+        "owner_email": user["email"],
+        "google_email": google_email
+    }
