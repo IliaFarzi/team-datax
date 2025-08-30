@@ -113,7 +113,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
     user_id = decode_token(token)  
-    print(f"Decoded user_id from token: {user_id}")
+#    print(f"Decoded user_id from token: {user_id}")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token")
     try:
