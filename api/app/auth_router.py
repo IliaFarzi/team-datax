@@ -326,9 +326,9 @@ def connect_google_sheets(user=Depends(get_current_user)):
 @auth_router.post("/google-sheets/exchange")
 def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_user)):
     stored_state = sessions.get(str(user["_id"]), {}).get("state")
+    print(f"Received code: {payload.code}, state: {payload.state}, stored_state: {stored_state}")
     if not stored_state:
         raise HTTPException(status_code=400, detail="Invalid state")
-    print(f"code:{payload.code}")
 
     # Step 1: Exchange code → tokens
     flow = Flow.from_client_config(
