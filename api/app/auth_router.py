@@ -329,8 +329,12 @@ def connect_google_sheets(user=Depends(get_current_user)):
 @auth_router.post("/google-sheets/exchange")
 def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_user)):
     stored_state = sessions.get(str(user["_id"]), {}).get("state")
-    print(f"Received code: {payload.code}, state: {payload.state}, stored_state: {stored_state}")
-    if not stored_state:
+    print("📩 Incoming exchange request")
+    print(f"➡️ code: {payload.code}")
+    print(f"➡️ state: {payload.state}")
+    print(f"➡️ stored_state: {stored_state}")
+
+    if not stored_state or payload.state != stored_state:
         raise HTTPException(status_code=400, detail="Invalid state")
 
     # Step 1: Exchange code → tokens
@@ -340,19 +344,27 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
         redirect_uri=FRONTEND_SHEETS_CALLBACK,
     )
     try:
-        flow.fetch_token(code=payload.code)
+        print("🔑 Fetching token from Google...")
+        flow.fetch_token(
+            code=payload.code,
+            redirect_uri=FRONTEND_SHEETS_CALLBACK   # 👈 مهم
+        )
+        credentials = flow.credentials
+        print("✅ Token fetched successfully")
+        print(f"   access_token: {credentials.token[:20]}...")  # فقط بخشی رو لاگ کنیم
+        print(f"   refresh_token: {credentials.refresh_token}")
     except Exception as e:
+        print(f"❌ Error while fetching token: {repr(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to exchange code: {e}")
-    credentials = flow.credentials
 
     # Step 2: Get Google account email
-    oauth2_service = build("oauth2", "v2", credentials=credentials)
     try:
+        oauth2_service = build("oauth2", "v2", credentials=credentials)
         user_info = oauth2_service.userinfo().get().execute()
         google_email = user_info.get("email")
-        if not google_email:
-            raise HTTPException(status_code=400, detail="Failed to retrieve Google email")
+        print(f"📧 Google email: {google_email}")
     except Exception as e:
+        print(f"❌ Error fetching user info: {repr(e)}")
         raise HTTPException(status_code=401, detail=f"Failed to fetch user info: {str(e)}")
 
     # Step 3: Save credentials in Mongo
@@ -372,20 +384,27 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
             "sheets_connected_at": datetime.now(timezone.utc)
         }},
     )
+    print("💾 Credentials saved to Mongo")
 
     # Step 4: Ingest sheets → MinIO
-    uploaded_to_minio = _ingest_user_sheets_to_minio(
-        user_id=str(user["_id"]), creds=credentials
-    )
+    try:
+        uploaded_to_minio = _ingest_user_sheets_to_minio(
+            user_id=str(user["_id"]), creds=credentials
+        )
+        print(f"📂 Uploaded {len(uploaded_to_minio)} sheets to MinIO")
+    except Exception as e:
+        print(f"❌ Error ingesting sheets: {repr(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to ingest sheets: {e}")
 
     # Clear state after successful exchange
     sessions.pop(str(user["_id"]), None)
-    
+
     return {
         "message": "Google Sheets connected and ingested successfully",
         "google_email": google_email,
-        "uploaded_to_minio": uploaded_to_minio,  # list of {sheet_id, filename, url, ...}
+        "uploaded_to_minio": uploaded_to_minio,
     }
+
 
 
 def _refresh_credentials_if_needed(creds_dict: Dict[str, Any]) -> Dict[str, Any]:
