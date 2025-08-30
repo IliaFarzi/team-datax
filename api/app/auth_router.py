@@ -112,7 +112,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
-    user_id = decode_token(token)  # الان user_id واقعی میاد
+    user_id = decode_token(token)  
     print(f"Decoded user_id from token: {user_id}")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -160,7 +160,6 @@ async def signup(payload: SignupIn):
         "last_login": None,
         "google_credentials": None,
     }
-    print(f"user_doc : {user_doc}")
     result = db["users"].insert_one(user_doc)
 
     # ⚡ Now we put the real user_id in the token
@@ -241,8 +240,11 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
         {"$set": {
         "is_verified": True,
         "verified_at": datetime.now(timezone.utc)}})
+    # Generate JWT token and create session
+    token = create_access_token({"sub": str(user["_id"])})
     success = {
     "message": "Account verified successfully",
+    "token": token,
     "email": user.get("email"),
     "id": str(user["_id"]),
     "created_at": user.get("created_at"),
@@ -262,18 +264,18 @@ def forgot_password(payload: ForgotPasswordIn):
     
     reset_token = create_access_token({"sub": str(user["_id"])})
     reset_link = f"{FRONTEND_URL}/reset-password?token={reset_token}"
+    token = create_access_token({"sub": str(user["_id"])})
     
     success = {
         "message": "Password reset link generated successfully",
+        "token":token,
         "email": user.get("email"),
         "user_id": str(user["_id"]),
         "reset_link": reset_link
     }
     
     # Log
-    print(success)
-   # print(f"[FORGOT-PASSWORD] Reset link generated for user {user.get('email')} | link: {reset_link}")
-    
+    print(success)    
     return success
 
 
@@ -290,17 +292,16 @@ def reset_password(payload: ResetPasswordIn, email: str = Depends(get_current_em
         {"_id": user["_id"]},
         {"$set": {"password_hash": hash_password(payload.new_password)}}
     )
-    
+    token = create_access_token({"sub": str(user["_id"])})
     success = {
         "message": "Password reset successful",
+        "token": token,
         "email": email,
         "user_id": str(user["_id"])
     }
     
     # Log
     print(success)
-  #  print(f"[RESET-PASSWORD] User {email} successfully reset password at {datetime.now(timezone.utc)}")
-    
     return success
 
 
@@ -326,6 +327,7 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
     state = sessions.get(str(user["_id"]), {}).get("state")
     if not state:
         raise HTTPException(status_code=400, detail="Invalid state")
+    print(f"code:{payload.code}")
 
     # Step 1: Exchange code → tokens
     flow = Flow.from_client_config(
