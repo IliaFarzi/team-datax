@@ -131,7 +131,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
 
 def get_current_email_from_session(user: Dict[str, Any] = Depends(get_current_user)) -> str:
     email = user.get("email")
-    print(f"Extracted email: {email}")
+#    print(f"Extracted email: {email}")
     if not email:
         raise HTTPException(status_code=400, detail="Email not found in session")
     return email
