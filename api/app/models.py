@@ -110,3 +110,4 @@ class ResetPasswordIn(BaseModel):
 
 class ExchangeCodeIn(BaseModel):
     code: str
+    state: str
