@@ -317,9 +317,12 @@ def connect_google_sheets(user=Depends(get_current_user)):
         scopes=SCOPES_SHEETS,
         redirect_uri=FRONTEND_SHEETS_CALLBACK,
     )
-    auth_url, state = flow.authorization_url(prompt="consent")
-    sessions[str(user["_id"])] = {"state": state}
     
+    auth_url, state = flow.authorization_url(prompt="consent",
+                                             access_type="offline", # Get refresh_token
+                                             include_granted_scopes='true')# If the user has previously granted permission, use it again
+    sessions[str(user["_id"])] = {"state": state}
+
     return {"auth_url": auth_url, "state": state}
 
 # Code exchange and data storage
