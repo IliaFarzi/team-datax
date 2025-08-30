@@ -324,8 +324,8 @@ def connect_google_sheets(user=Depends(get_current_user)):
 # Code exchange and data storage
 @auth_router.post("/google-sheets/exchange")
 def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_user)):
-    state = sessions.get(str(user["_id"]), {}).get("state")
-    if not state:
+    stored_state = sessions.get(str(user["_id"]), {}).get("state")
+    if not stored_state:
         raise HTTPException(status_code=400, detail="Invalid state")
     print(f"code:{payload.code}")
 
@@ -335,7 +335,10 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
         scopes=SCOPES_SHEETS,
         redirect_uri=FRONTEND_SHEETS_CALLBACK,
     )
-    flow.fetch_token(code=payload.code)
+    try:
+        flow.fetch_token(code=payload.code)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to exchange code: {e}")
     credentials = flow.credentials
 
     # Step 2: Get Google account email (via API, not id_token)
@@ -365,7 +368,10 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
     uploaded_to_minio = _ingest_user_sheets_to_minio(
         user_id=str(user["_id"]), creds=credentials
     )
-
+    
+    # Clear state after successful exchange
+    sessions.pop(str(user["_id"]), None)
+    
     return {
         "message": "Google Sheets connected and ingested successfully",
         "google_email": google_email,
