@@ -3,6 +3,9 @@
 # Use official Python 3.12 slim image as base
 FROM python:3.12-slim
 
+# curl install
+RUN pip install --no-cache-dir --upgrade google-auth google-auth-oauthlib google-api-python-client
+
 # Set the working directory inside the container
 WORKDIR /app
 

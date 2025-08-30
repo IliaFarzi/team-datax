@@ -327,6 +327,7 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
     if not state:
         raise HTTPException(status_code=400, detail="Invalid state")
 
+    # Step 1: Exchange code → tokens
     flow = Flow.from_client_config(
         client_config,
         scopes=SCOPES_SHEETS,
@@ -335,15 +336,12 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
     flow.fetch_token(code=payload.code)
     credentials = flow.credentials
 
-    # getting Google Email
-    id_info = id_token.verify_oauth2_token(
-        credentials.id_token,
-        google_requests.Request(),
-        client_config["web"]["client_id"]
-    )
-    google_email = id_info.get("email")
+    # Step 2: Get Google account email (via API, not id_token)
+    oauth2_service = build("oauth2", "v2", credentials=credentials)
+    user_info = oauth2_service.userinfo().get().execute()
+    google_email = user_info.get("email")
 
-    # Saving in Data Base
+    # Step 3: Save credentials in Mongo
     creds_dict = {
         "token": credentials.token,
         "refresh_token": credentials.refresh_token,
@@ -361,15 +359,16 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
         }},
     )
 
-    # ingest Sheets
-    uploaded_to_minio = _ingest_user_sheets_to_minio(user_id=str(user["_id"]), creds=credentials)
+    # Step 4: Ingest sheets → MinIO
+    uploaded_to_minio = _ingest_user_sheets_to_minio(
+        user_id=str(user["_id"]), creds=credentials
+    )
 
     return {
         "message": "Google Sheets connected and ingested successfully",
         "google_email": google_email,
-        "uploaded_to_minio": uploaded_to_minio,
+        "uploaded_to_minio": uploaded_to_minio,  # list of {sheet_id, filename, url, ...}
     }
-
 
 
 def _refresh_credentials_if_needed(creds_dict: Dict[str, Any]) -> Dict[str, Any]:
@@ -473,19 +472,17 @@ def _ingest_user_sheets_to_minio(user_id: str, creds: Credentials) -> List[Dict[
 # ==========================================
 # List ingested sheets for current user
 # ==========================================
+# ==========================================
+# List ingested sheets for current user
+# ==========================================
 @auth_router.get("/sheets")
 def list_my_sheets(user=Depends(get_current_user)):
     owner_id = str(user["_id"])
     google_email = user.get("google_email")
 
-    query = {"$or": [{"owner_id": owner_id}]}
-
-    if google_email:
-        query["$or"].append({"google_email": google_email})
-
     items = list(
         db["spreadsheet_metadata"].find(
-            query,
+            {"owner_id": owner_id},
             {"_id": 0}
         )
     )
