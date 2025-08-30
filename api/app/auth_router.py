@@ -75,6 +75,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 SCOPES_SHEETS = [
     "https://www.googleapis.com/auth/spreadsheets.readonly",
     "https://www.googleapis.com/auth/drive.metadata.readonly",
+    "https://www.googleapis.com/auth/userinfo.email"
 ]
 
 # Password hashing
@@ -341,10 +342,15 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
         raise HTTPException(status_code=400, detail=f"Failed to exchange code: {e}")
     credentials = flow.credentials
 
-    # Step 2: Get Google account email (via API, not id_token)
+    # Step 2: Get Google account email
     oauth2_service = build("oauth2", "v2", credentials=credentials)
-    user_info = oauth2_service.userinfo().get().execute()
-    google_email = user_info.get("email")
+    try:
+        user_info = oauth2_service.userinfo().get().execute()
+        google_email = user_info.get("email")
+        if not google_email:
+            raise HTTPException(status_code=400, detail="Failed to retrieve Google email")
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Failed to fetch user info: {str(e)}")
 
     # Step 3: Save credentials in Mongo
     creds_dict = {
@@ -368,7 +374,7 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
     uploaded_to_minio = _ingest_user_sheets_to_minio(
         user_id=str(user["_id"]), creds=credentials
     )
-    
+
     # Clear state after successful exchange
     sessions.pop(str(user["_id"]), None)
     
