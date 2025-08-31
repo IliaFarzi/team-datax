@@ -448,7 +448,7 @@ def _ingest_user_sheets_to_minio(user_id: str, creds: Credentials) -> List[Dict[
         svc = build("sheets", "v4", credentials=creds)
         values = svc.spreadsheets().values().get(
             spreadsheetId=sheet_id,
-            range="A1:Z50"  # a small preview/export; adjust as needed
+            range="A1:Z50"  # preview
         ).execute().get("values", [])
 
         if not values:
@@ -456,7 +456,15 @@ def _ingest_user_sheets_to_minio(user_id: str, creds: Credentials) -> List[Dict[
             df = pd.DataFrame()
         else:
             headers = values[0]
-            df = pd.DataFrame(values[1:], columns=headers) if len(values) > 1 else pd.DataFrame(columns=headers)
+            rows = values[1:]
+
+            # ✅ Fix: normalize rows so each matches header length
+            normalized_rows = [
+                row + [None] * (len(headers) - len(row)) if len(row) < len(headers) else row[:len(headers)]
+                for row in rows
+            ]
+
+            df = pd.DataFrame(normalized_rows, columns=headers) if rows else pd.DataFrame(columns=headers)
 
         # Save to a temporary CSV file
         with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
@@ -468,7 +476,6 @@ def _ingest_user_sheets_to_minio(user_id: str, creds: Credentials) -> List[Dict[
         try:
             minio_client.fput_object(DATAX_MINIO_BUCKET_SHEETS, object_name, csv_path)
         except S3Error as e:
-            # clean temp and continue
             try:
                 os.remove(csv_path)
             except Exception:
@@ -506,9 +513,7 @@ def _ingest_user_sheets_to_minio(user_id: str, creds: Credentials) -> List[Dict[
     return uploaded
 
 
-# ==========================================
-# List ingested sheets for current user
-# ==========================================
+
 # ==========================================
 # List ingested sheets for current user
 # ==========================================
