@@ -10,6 +10,7 @@ import os
 from api.app.chat_router import chat_router
 from api.app.auth_router import auth_router
 from api.app.upload_router import upload_router
+from api.app.rag_router import rag_router
 
 from api.app.google_sheets import  google_sheets_preview_router
 
@@ -46,6 +47,7 @@ app.include_router(auth_router)
 app.include_router(google_sheets_preview_router)
 app.include_router(upload_router)
 app.include_router(chat_router)
+app.include_router(rag_router)
 
 @app.get("/")
 def root():
