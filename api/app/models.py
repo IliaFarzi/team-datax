@@ -111,3 +111,7 @@ class ResetPasswordIn(BaseModel):
 class ExchangeCodeIn(BaseModel):
     code: str
     state: str
+
+class RagQueryIn(BaseModel):
+    question: str
+    top_k: int = 5
