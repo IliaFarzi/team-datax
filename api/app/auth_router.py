@@ -73,10 +73,12 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 # Google scopes (Sheets connection ONLY)
 SCOPES_SHEETS = [
+    "openid",
     "https://www.googleapis.com/auth/spreadsheets.readonly",
     "https://www.googleapis.com/auth/drive.metadata.readonly",
     "https://www.googleapis.com/auth/userinfo.email"
 ]
+
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
