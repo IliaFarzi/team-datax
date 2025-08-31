@@ -99,6 +99,10 @@ jobs:
             echo "MAIL_STARTTLS=${{ secrets.MAIL_STARTTLS }}" >> .env.datax
             echo "MAIL_SSL_TLS=${{ secrets.MAIL_SSL_TLS }}" >> .env.datax
             echo "VPS_URL=${{ secrets.VPS_URL }}" >> .env.datax
+            
+            # add qdrant url
+            echo "QDRANT_URL=${{ secrets.QDRANT_URL }}" >> .env.datax
+
 
             # Stop and remove old container if exists
             docker rm -f datax-backend || true
