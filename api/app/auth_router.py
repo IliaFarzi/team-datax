@@ -346,8 +346,7 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
     try:
         print("🔑 Fetching token from Google...")
         flow.fetch_token(
-            code=payload.code,
-            redirect_uri=FRONTEND_SHEETS_CALLBACK   # 👈 مهم
+            code=payload.code
         )
         credentials = flow.credentials
         print("✅ Token fetched successfully")
