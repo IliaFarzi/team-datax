@@ -1,4 +1,4 @@
-# api/app/services/vectorstore.py
+# api/app/vectorstore.py
 import os
 import logging
 
