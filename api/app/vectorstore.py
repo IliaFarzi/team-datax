@@ -10,7 +10,10 @@ logger = logging.getLogger(__name__)
 QDRANT_URL = os.getenv("QDRANT_URL")
 COLLECTION_NAME = "sheets"
 
-client = QdrantClient(url=QDRANT_URL)
+client = QdrantClient(url=QDRANT_URL,
+                          prefer_grpc=False,         
+                          timeout=30,             
+                         check_compatibility=False)
 
 # Connect to Qdrant
 try:
