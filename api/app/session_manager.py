@@ -2,7 +2,6 @@
 import uuid
 
 sessions = {}
-DEFAULT_MODEL = "some_model"
 WELCOME_MESSAGE = "👋 **Welcome!** How can I help you today?"
 #DEFAULT_MODEL = "mistralai/mistral-7b-instruct"
 #DEFAULT_MODEL = "qwen/qwen2.5-72b-instruct"
