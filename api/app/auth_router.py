@@ -26,6 +26,7 @@ from minio.error import S3Error
 
 from api.app.database import ensure_mongo_collections, get_minio_client, ensure_bucket, minio_file_url, DATAX_MINIO_BUCKET_SHEETS
 from api.app.session_manager import sessions, initialize_session
+from api.app.sheet_ingest import ingest_sheet
 from api.app.models import SignupIn, LoginIn, VerifyIn, ForgotPasswordIn, ResetPasswordIn, ExchangeCodeIn
 
 # =========================
@@ -347,12 +348,10 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
     )
     try:
         print("🔑 Fetching token from Google...")
-        flow.fetch_token(
-            code=payload.code
-        )
+        flow.fetch_token(code=payload.code)
         credentials = flow.credentials
         print("✅ Token fetched successfully")
-        print(f"   access_token: {credentials.token[:20]}...")  # فقط بخشی رو لاگ کنیم
+        print(f"   access_token: {credentials.token[:20]}...")
         print(f"   refresh_token: {credentials.refresh_token}")
     except Exception as e:
         print(f"❌ Error while fetching token: {repr(e)}")
@@ -387,12 +386,46 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
     )
     print("💾 Credentials saved to Mongo")
 
-    # Step 4: Ingest sheets → MinIO
+    # Step 4: Ingest sheets → MinIO + Qdrant
     try:
-        uploaded_to_minio = _ingest_user_sheets_to_minio(
-            user_id=str(user["_id"]), creds=credentials
-        )
-        print(f"📂 Uploaded {len(uploaded_to_minio)} sheets to MinIO")
+        drive = build("drive", "v3", credentials=credentials)
+        sheets = drive.files().list(
+            q="mimeType='application/vnd.google-apps.spreadsheet'",
+            fields="files(id, name)"
+        ).execute().get("files", [])
+
+        uploaded_to_minio = []
+        for f in sheets:
+            sheet_id = f["id"]
+            sheet_name = f["name"]
+
+            svc = build("sheets", "v4", credentials=credentials)
+            values = svc.spreadsheets().values().get(
+                spreadsheetId=sheet_id,
+                range="A1:Z50"  # preview
+            ).execute().get("values", [])
+
+            if not values:
+                df = pd.DataFrame()
+            else:
+                headers = values[0]
+                rows = values[1:]
+                normalized_rows = [
+                    row + [None] * (len(headers) - len(row)) if len(row) < len(headers) else row[:len(headers)]
+                    for row in rows
+                ]
+                df = pd.DataFrame(normalized_rows, columns=headers)
+
+            # ⚡ اینجا از ingest_sheet استفاده می‌کنیم
+            meta = ingest_sheet(
+                user_id=str(user["_id"]),
+                sheet_id=sheet_id,
+                sheet_name=sheet_name,
+                df=df
+            )
+            uploaded_to_minio.append(meta)
+
+        print(f"📂 Uploaded {len(uploaded_to_minio)} sheets to MinIO + Qdrant")
     except Exception as e:
         print(f"❌ Error ingesting sheets: {repr(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to ingest sheets: {e}")
@@ -405,7 +438,6 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
         "google_email": google_email,
         "uploaded_to_minio": uploaded_to_minio,
     }
-
 
 
 def _refresh_credentials_if_needed(creds_dict: Dict[str, Any]) -> Dict[str, Any]:
@@ -423,96 +455,6 @@ def _refresh_credentials_if_needed(creds_dict: Dict[str, Any]) -> Dict[str, Any]
         }
         return refreshed
     return creds_dict
-
-
-def _ingest_user_sheets_to_minio(user_id: str, creds: Credentials) -> List[Dict[str, Any]]:
-    """
-    Lists user's spreadsheets, downloads a sample (headers + first rows),
-    saves CSV to MinIO, and stores metadata in MongoDB.
-    """
-    drive = build("drive", "v3", credentials=creds)
-    sheets = drive.files().list(
-        q="mimeType='application/vnd.google-apps.spreadsheet'",
-        fields="files(id, name)"
-    ).execute().get("files", [])
-
-    minio_client = get_minio_client()
-    ensure_bucket(minio_client, DATAX_MINIO_BUCKET_SHEETS)
-
-    uploaded = []
-    for f in sheets:
-        sheet_id = f["id"]
-        sheet_name = f["name"]
-
-        # Pull first rows from the sheet
-        svc = build("sheets", "v4", credentials=creds)
-        values = svc.spreadsheets().values().get(
-            spreadsheetId=sheet_id,
-            range="A1:Z50"  # preview
-        ).execute().get("values", [])
-
-        if not values:
-            headers = []
-            df = pd.DataFrame()
-        else:
-            headers = values[0]
-            rows = values[1:]
-
-            # ✅ Fix: normalize rows so each matches header length
-            normalized_rows = [
-                row + [None] * (len(headers) - len(row)) if len(row) < len(headers) else row[:len(headers)]
-                for row in rows
-            ]
-
-            df = pd.DataFrame(normalized_rows, columns=headers) if rows else pd.DataFrame(columns=headers)
-
-        # Save to a temporary CSV file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
-            csv_path = tmp.name
-        df.to_csv(csv_path, index=False, encoding="utf-8")
-
-        # Upload to MinIO under user_id/sheet_id.csv
-        object_name = f"{user_id}/{sheet_id}.csv"
-        try:
-            minio_client.fput_object(DATAX_MINIO_BUCKET_SHEETS, object_name, csv_path)
-        except S3Error as e:
-            try:
-                os.remove(csv_path)
-            except Exception:
-                pass
-            raise HTTPException(status_code=500, detail=f"MinIO upload failed: {e}")
-
-        # Remove temp file
-        try:
-            os.remove(csv_path)
-        except Exception:
-            pass
-
-        file_url = minio_file_url(DATAX_MINIO_BUCKET_SHEETS, object_name)
-
-        # Store/Upsert metadata for listing
-        meta = {
-            "owner_id": user_id,
-            "sheet_id": sheet_id,
-            "sheet_name": sheet_name,
-            "bucket": DATAX_MINIO_BUCKET_SHEETS,
-            "object_name": object_name,
-            "file_url": file_url,
-            "headers": headers,
-            "rows_saved": int(df.shape[0]),
-            "columns": int(df.shape[1]),
-            "updated_at": datetime.now(timezone.utc),
-        }
-        db["spreadsheet_metadata"].update_one(
-            {"owner_id": user_id, "sheet_id": sheet_id},
-            {"$set": meta},
-            upsert=True,
-        )
-        uploaded.append(meta)
-
-    return uploaded
-
-
 
 # ==========================================
 # List ingested sheets for current user
