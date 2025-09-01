@@ -1,49 +1,60 @@
 #api/app/upload_router.py
 from fastapi import APIRouter, File, UploadFile, HTTPException, Request
+
 import pandas as pd
 import os
 from dotenv import load_dotenv
 import tempfile
 from datetime import datetime, timezone
+import logging
 
 from api.app.database import ensure_mongo_collections, get_minio_client, DATAX_MINIO_ENDPOINT, DATAX_MINIO_BUCKET_UPLOADS
 
 load_dotenv(".env")
 
 client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
-
+logger = logging.getLogger(__name__)
 
 upload_router = APIRouter(prefix="/upload", tags=["File Upload"])
 
+# api/app/upload_router.py
 @upload_router.post("/")
 async def upload_file(request: Request, file: UploadFile = File(...)):
-    """Upload CSV/Excel to MinIO and store metadata in MongoDB."""
+    """Upload any file to MinIO and store metadata in MongoDB."""
     try:
-        # Get google_id from session (or other user identifier)
         google_id = request.session.get("google_id")
         if not google_id:
+            logger.warning("❌ Upload rejected: user not authenticated")
             raise HTTPException(status_code=401, detail="User not authenticated")
-        # Validate file type
-        if not (file.filename.endswith(".csv") or file.filename.endswith(".xlsx")):
-            raise HTTPException(status_code=400, detail="Only CSV and Excel files are allowed.")
 
-        # Save temporarily
+        logger.info(f"📂 Upload attempt by user={google_id}, file={file.filename}")
+
+        # Save temp
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             tmp.write(await file.read())
             tmp_path = tmp.name
+        logger.debug(f"📌 Temp file saved at {tmp_path}")
 
         # Upload to MinIO
         object_name = f"{google_id}/{file.filename}"
         minio_client = get_minio_client()
         minio_client.fput_object(DATAX_MINIO_BUCKET_UPLOADS, object_name, tmp_path)
+        logger.info(f"✅ File uploaded to MinIO bucket={DATAX_MINIO_BUCKET_UPLOADS}, object={object_name}")
 
-        # Read file for metadata
-        if file.filename.endswith(".csv"):
-            df = pd.read_csv(tmp_path)
-        else:
-            df = pd.read_excel(tmp_path)
+        # Try read CSV/Excel for metadata (optional)
+        rows, columns, headers = None, None, []
+        try:
+            if file.filename.endswith(".csv"):
+                df = pd.read_csv(tmp_path)
+                rows, columns, headers = len(df), len(df.columns), list(df.columns)
+            elif file.filename.endswith(".xlsx"):
+                df = pd.read_excel(tmp_path)
+                rows, columns, headers = len(df), len(df.columns), list(df.columns)
+            else:
+                logger.info(f"ℹ️ File {file.filename} is not CSV/Excel → skipping row/column metadata")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not parse file {file.filename} for metadata: {str(e)}")
 
-        # Remove temporary file
         os.remove(tmp_path)
 
         # File URL
@@ -56,13 +67,14 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
             "object_name": object_name,
             "bucket": DATAX_MINIO_BUCKET_UPLOADS,
             "url": file_url,
-            "rows": len(df),
-            "columns": len(df.columns),
-            "headers": list(df.columns),
+            "rows": rows,
+            "columns": columns,
+            "headers": headers,
             "uploaded_at": datetime.now(timezone.utc)
         }
-        metadata_col = db["uploaded_files"]
-        metadata_col.insert_one(metadata)
+        db["uploaded_files"].insert_one(metadata)
+
+        logger.info(f"💾 Metadata stored in Mongo for file={file.filename}")
 
         return {
             "message": "File uploaded and metadata stored successfully",
@@ -70,70 +82,5 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         }
 
     except Exception as e:
+        logger.exception(f"❌ Upload failed for {file.filename}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
-def list_uploaded_files(google_id: str) -> list:
-    """List all files uploaded by a specific user (google_id) with metadata."""
-    try:
-        metadata_col = db["uploaded_files"]
-        files = list(metadata_col.find({"google_id": google_id}, {"_id": 0}))
-        return files
-    except Exception as e:
-        raise ValueError(f"Error retrieving uploaded files: {str(e)}")
-
-def analyze_uploaded_file(filename: str, operation: str = None, column: str = None, value: str = None) -> dict:
-    """Analyze an uploaded CSV or Excel file stored in MinIO."""
-    try:
-        # Retrieve file metadata from MongoDB
-        metadata_col = db["uploaded_files"]
-        file_metadata = metadata_col.find_one({"filename": filename})
-        if not file_metadata:
-            raise ValueError(f"File {filename} not found in metadata.")
-
-        # Download file from MinIO
-        minio_client = get_minio_client()
-        object_name = file_metadata["object_name"]
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".csv" if filename.endswith(".csv") else ".xlsx") as tmp:
-            minio_client.fget_object(DATAX_MINIO_BUCKET_UPLOADS, object_name, tmp.name)
-            tmp_path = tmp.name
-
-        # Read file
-        if filename.endswith(".csv"):
-            df = pd.read_csv(tmp_path)
-        else:
-            df = pd.read_excel(tmp_path)
-
-        # Remove temporary file
-        os.remove(tmp_path)
-
-        # Perform analysis if requested
-        if operation:
-            if column not in df.columns:
-                raise ValueError(f"Column {column} not found in file {filename}.")
-            
-            if operation == "sum":
-                result = pd.to_numeric(df[column], errors="coerce").sum()
-                return {"result": result, "operation": "sum", "column": column}
-            elif operation == "mean":
-                result = pd.to_numeric(df[column], errors="coerce").mean()
-                return {"result": result, "operation": "mean", "column": column}
-            elif operation == "filter":
-                if value is None:
-                    raise ValueError("Filter operation requires a value.")
-                result = df[df[column].astype(str) == value]
-                return {"result": result.to_dict(orient="records"), "operation": "filter", "column": column, "value": value}
-            else:
-                raise ValueError(f"Unsupported operation: {operation}")
-        
-        # If no operation specified, return file metadata and headers
-        return {
-            "filename": filename,
-            "headers": list(df.columns),
-            "rows": len(df),
-            "columns": len(df.columns)
-        }
-
-    except Exception as e:
-        raise ValueError(f"Error analyzing file {filename}: {str(e)}")
-    
-    #############
