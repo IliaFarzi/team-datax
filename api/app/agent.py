@@ -70,15 +70,18 @@ openrouter_base_url = os.getenv("OPENROUTER_API_BASE")
 
 def get_agent(model_name: str):
     llm = ChatOpenAI(
-        model_name=model_name,
-        openai_api_key=openrouter_api_key,
-        openai_api_base=openrouter_base_url,
+        model=model_name,
+        api_key=openrouter_api_key,
+        base_url=openrouter_base_url,
         temperature=0.7,
-        max_tokens=4096,
-        top_p=0.9,
-        frequency_penalty=0.1,
-        presence_penalty=0.1
+        model_kwargs={
+            "max_tokens": 4096,
+            "top_p": 0.9,
+            "frequency_penalty": 0.1,
+            "presence_penalty": 0.1,
+        }
     )
+
     system_message = """
     You are a data analysis assistant that helps users interact with their Google Sheets. Use the provided tools to:
     - List available Google Sheets (ListGoogleSheets).
@@ -88,10 +91,14 @@ def get_agent(model_name: str):
     - List private and public Google Sheets for a user (ListPrivatePublicSheets).
     - List all files uploaded by a specific user (google_id) with metadata (ListUploadedFiles).
     - Analyze an uploaded CSV or Excel file stored in MinIO (AnalyzeUploadedFile).
+
     **Important:**
     - Always format your responses in Markdown so the frontend can render them nicely.
     - Use bullet points, tables, and code blocks where appropriate.
     - Be clear and concise, and explain results as if teaching a non-technical user.
     """
+
+    # attach system message
     llm = llm.with_config(system_message=system_message)
+
     return create_react_agent(llm, tools=tools)

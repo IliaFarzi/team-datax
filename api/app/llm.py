@@ -10,10 +10,10 @@ DEFAULT_MODEL = "mistralai/mistral-small-3.2-24b-instruct"
 def get_llm(model_name: str = DEFAULT_MODEL):
     return ChatOpenAI(
         model=model_name,
-        openai_api_key=OPENROUTER_API_KEY,
-        openai_api_base=OPENROUTER_BASE_URL,
+        api_key=OPENROUTER_API_KEY,
+        base_url=OPENROUTER_BASE_URL,
         temperature=0.3,
-        max_tokens=1024,
+        model_kwargs={"max_tokens":1024}
     )
 
 def get_rag_agent(tools=[]):
