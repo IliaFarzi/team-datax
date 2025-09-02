@@ -85,11 +85,10 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         logger.exception(f"❌ Upload failed for {file.filename}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-#
-
-def analyze_uploaded_file(filename: str, google_id: str, operation: str, column: str, value: str | None = None):
+# Analyze uploaded CSV/Excel file
+def analyze_uploaded_file(filename: str, user_id: str, operation: str, column: str, value: str | None = None):
     minio_client = get_minio_client()
-    object_name = f"{google_id}/{filename}"
+    object_name = f"{user_id}/{filename}"
     tmp_path = f"/tmp/{filename}"
 
     try:
@@ -135,6 +134,7 @@ def analyze_uploaded_file(filename: str, google_id: str, operation: str, column:
 
 
 # List of user uploaded files
-def list_uploaded_files(google_id: str):
-    files = list(db["uploaded_files"].find({"google_id": google_id}, {"_id": 0}))
+def list_uploaded_files(user_id: str):
+    files = list(db["uploaded_files"].find({"user_id": user_id}, {"_id": 0}))
     return files
+
