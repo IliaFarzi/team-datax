@@ -8,37 +8,52 @@ from fastapi import Request
 import os
 from dotenv import load_dotenv
 
-from api.app.google_sheets import list_google_sheets, preview_google_sheet, load_google_sheet_to_dataframe, analyze_google_sheet, list_private_public_sheets, extract_headers_tool
+from api.app.google_sheets import (
+    list_google_sheets,
+    preview_google_sheet,
+    load_google_sheet_to_dataframe,
+    analyze_google_sheet,
+    list_private_public_sheets,
+    extract_headers_tool
+)
 from api.app.upload_router import analyze_uploaded_file, list_uploaded_files
 
-def make_wrapped_tools(request):
-    google_id = request.session.get("google_id")
+
+def make_wrapped_tools(request: Request):
+
+    user_id = str(request.session.get("user_id"))
 
     # Google Sheets tools
     def wrapped_list_google_sheets():
-        return list_google_sheets(google_id=google_id)
+        return list_google_sheets(user_id=user_id)
 
     def wrapped_list_private_public_sheets():
-        return list_private_public_sheets(google_id=google_id)
+        return list_private_public_sheets(user_id=user_id)
 
     def wrapped_preview_google_sheet(sheet_id: str):
-        return preview_google_sheet(sheet_id=sheet_id, google_id=google_id)
+        return preview_google_sheet(sheet_id=sheet_id, user_id=user_id)
 
     def wrapped_load_google_sheet_to_dataframe(sheet_id: str):
-        return load_google_sheet_to_dataframe(sheet_id=sheet_id, google_id=google_id)
+        return load_google_sheet_to_dataframe(sheet_id=sheet_id, user_id=user_id)
 
     def wrapped_analyze_google_sheet(sheet_id: str, operation: str, column: str, value: str = None):
-        return analyze_google_sheet(sheet_id=sheet_id, google_id=google_id, operation=operation, column=column, value=value)
+        return analyze_google_sheet(
+            sheet_id=sheet_id,
+            user_id=user_id,
+            operation=operation,
+            column=column,
+            value=value
+        )
 
     def wrapped_extract_headers_tool(sheet_id: str):
-        return extract_headers_tool(sheet_id=sheet_id, google_id=google_id)
+        return extract_headers_tool(sheet_id=sheet_id, user_id=user_id)
 
     # Upload tools
     def wrapped_list_uploaded_files():
-        return list_uploaded_files(google_id=google_id)
+        return list_uploaded_files(user_id=user_id)
 
     def wrapped_analyze_uploaded_file(filename: str):
-        return analyze_uploaded_file(filename=filename, google_id=google_id)
+        return analyze_uploaded_file(filename=filename, user_id=user_id)
 
     tools = [
         StructuredTool.from_function(func=wrapped_list_google_sheets, name="ListGoogleSheets", description="List all Google Sheets available to the logged-in user."),
@@ -60,7 +75,7 @@ load_dotenv(".env")
 openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
 openrouter_base_url = os.getenv("OPENROUTER_API_BASE")
 
-def get_agent(model_name: str, request):
+def get_agent(model_name: str, request: Request):
     llm = ChatOpenAI(
         model=model_name,
         api_key=openrouter_api_key,
@@ -98,7 +113,6 @@ You have access to these tools:
 - Be clear and concise, and explain results as if teaching a non-technical user.
 """
 
-    # attach system message
     llm = llm.with_config(system_message=system_message)
 
     tools = make_wrapped_tools(request)
