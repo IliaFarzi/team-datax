@@ -18,7 +18,7 @@ def send_message(message: UserMessage, request:Request):
     
     # If the session does not exist, create it
     if session_id not in sessions:
-        _, sessions[session_id], _ = initialize_session()
+        _, sessions[session_id], _ = initialize_session(request)
 
     session = sessions.get(session_id)
     if not session:
