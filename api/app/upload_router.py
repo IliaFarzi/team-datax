@@ -86,3 +86,55 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 #
+
+def analyze_uploaded_file(filename: str, google_id: str, operation: str, column: str, value: str | None = None):
+    minio_client = get_minio_client()
+    object_name = f"{google_id}/{filename}"
+    tmp_path = f"/tmp/{filename}"
+
+    try:
+        # Download file from MinIO
+        minio_client.fget_object(DATAX_MINIO_BUCKET_UPLOADS, object_name, tmp_path)
+
+        # Load into DataFrame
+        if filename.endswith(".csv"):
+            df = pd.read_csv(tmp_path)
+        elif filename.endswith(".xlsx"):
+            df = pd.read_excel(tmp_path)
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file type")
+
+        # Check if the column exists
+        if column not in df.columns:
+            raise HTTPException(status_code=400, detail=f"Column '{column}' not found in file")
+
+        # Simple operation
+        if operation == "sum":
+            result = df[column].sum()
+        elif operation == "mean":
+            result = df[column].mean()
+        elif operation == "count":
+            result = df[column].count()
+        elif operation == "filter":
+            if value is None:
+                raise HTTPException(status_code=400, detail="Value is required for filter operation")
+            result = df[df[column] == value].to_dict(orient="records")
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported operation: {operation}")
+
+        return {
+            "operation": operation,
+            "column": column,
+            "result": result,
+            "preview": df.head(5).to_dict(orient="records")
+        }
+
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+# List of user uploaded files
+def list_uploaded_files(google_id: str):
+    files = list(db["uploaded_files"].find({"google_id": google_id}, {"_id": 0}))
+    return files
