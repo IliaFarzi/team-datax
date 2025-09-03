@@ -1,27 +1,28 @@
 # api/app/ingesting_sheet.py
 import os
+import logging
 import pandas as pd
 import tempfile
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from minio.error import S3Error
-from api.app.vectorstore import insert_vectors
-from api.app.embeddings import embed_text_openrouter
-from api.app.session_manager import EMBEDDING_MODEL
+from api.app.vectorstore import insert_embeddings, client, COLLECTION_NAME
+from api.app.embeddings import embed_text
 from api.app.database import ensure_mongo_collections, get_minio_client, ensure_bucket, minio_file_url
 
+logger = logging.getLogger(__name__)
+
 DATAX_MINIO_BUCKET_SHEETS = os.getenv("DATAX_MINIO_BUCKET_SHEETS")
-OPENROUTER_EMBEDDING_URL = os.getenv('OPENROUTER_EMBEDDING_URL')
-OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
 
 client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
+
 
 def chunk_text(text: str, max_tokens: int = 200) -> List[str]:
     """ساده‌ترین روش chunk کردن: هر N کلمه یک chunk"""
     words = text.split()
     return [
-        " ".join(words[i:i+max_tokens])
+        " ".join(words[i:i + max_tokens])
         for i in range(0, len(words), max_tokens)
     ]
 
@@ -41,8 +42,10 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
     object_name = f"{user_id}/{sheet_id}.csv"
     try:
         minio_client.fput_object(DATAX_MINIO_BUCKET_SHEETS, object_name, csv_path)
+        logger.info(f"✅ Uploaded {object_name} to MinIO bucket {DATAX_MINIO_BUCKET_SHEETS}")
     except S3Error as e:
         os.remove(csv_path)
+        logger.error(f"❌ MinIO upload failed: {e}")
         raise RuntimeError(f"MinIO upload failed: {e}")
     finally:
         try:
@@ -52,20 +55,22 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
 
     file_url = minio_file_url(DATAX_MINIO_BUCKET_SHEETS, object_name)
 
-
-    
     # Build text chunks for RAG
     text_data = df.to_string(index=False)
     chunks = chunk_text(text_data, max_tokens=200)
+    logger.info(f"📑 Created {len(chunks)} text chunks from sheet '{sheet_name}'")
 
     # Try embedding but don't fail the entire ingestion
+    embedding_success = False
     try:
-        vectors = embed_text_openrouter(chunks,OPENROUTER_API_KEY, OPENROUTER_EMBEDDING_URL,EMBEDDING_MODEL)
-        insert_vectors(user_id, sheet_id, chunks, vectors)
+        vectors = embed_text(chunks)
+        metadatas = [{"chunk": chunk} for chunk in chunks]
+
+        insert_embeddings(client, COLLECTION_NAME, vectors, metadatas, user_id)
         embedding_success = True
+        logger.info(f"✅ Successfully embedded and stored chunks for sheet '{sheet_name}'")
     except Exception as e:
-        print(f"⚠️ Failed to create embeddings: {str(e)}")
-        embedding_success = False
+        logger.error(f"⚠️ Failed to create embeddings for sheet '{sheet_name}': {str(e)}")
 
     # Mongo metadata
     meta = {
@@ -81,10 +86,12 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
         "updated_at": datetime.now(timezone.utc),
         "embedding_success": embedding_success
     }
+
     db["spreadsheet_metadata"].update_one(
         {"owner_id": user_id, "sheet_id": sheet_id},
         {"$set": meta},
         upsert=True,
     )
-    print(meta)
+
+    logger.info(f"💾 Metadata saved to Mongo for sheet '{sheet_name}' (user={user_id})")
     return meta
