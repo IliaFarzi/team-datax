@@ -80,14 +80,11 @@ def get_agent(model_name: str, request: Request):
         model=model_name,
         api_key=openrouter_api_key,
         base_url=openrouter_base_url,
+        max_tokens= 4096,
         temperature=0.7,
-        model_kwargs={
-            "max_tokens": 4096,
-            "top_p": 0.9,
-            "frequency_penalty": 0.1,
-            "presence_penalty": 0.1,
-        }
-    )
+        top_p= 0.9,
+        frequency_penalty= 0.1,
+        presence_penalty= 0.1)
 
     system_message = """
 You are a strict data analysis assistant. 
