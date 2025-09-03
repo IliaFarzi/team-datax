@@ -105,8 +105,8 @@ jobs:
             echo "QDRANT_URL=${{ secrets.QDRANT_URL }}" >> .env.datax
 
             # embedding model
-            echo "HUGGINGFACE_API_KEY"=${{ secrets.HUGGINGFACE_API_KEY}}" >> .env.datax
-            echo "HUGGINGFACE_EMBEDDING_MODEL"=${{ secrets.HUGGINGFACE_EMBEDDING_MODEL}}" >> .env.datax
+            echo "HUGGINGFACE_API_KEY=${{ secrets.HUGGINGFACE_API_KEY}}" >> .env.datax
+            echo "HUGGINGFACE_EMBEDDING_MODEL=${{ secrets.HUGGINGFACE_EMBEDDING_MODEL}}" >> .env.datax
 
 
 
