@@ -82,8 +82,4 @@ def get_history(session_id: str) -> list:
     
 @chat_router.get("/get_history/{session_id}")
 def get_chat_history(session_id: str):
-    session = sessions.get(session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-
-    return get_history(session_id)
+    return get_history(session_id)  # مستقیماً از DB بخون
