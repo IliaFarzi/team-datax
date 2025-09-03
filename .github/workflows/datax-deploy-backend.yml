@@ -104,6 +104,11 @@ jobs:
             # add qdrant url
             echo "QDRANT_URL=${{ secrets.QDRANT_URL }}" >> .env.datax
 
+            # embedding model
+            echo "HUGGINGFACE_API_KEY"=${{ secrets.HUGGINGFACE_API_KEY}}" >> .env.datax
+            echo "HUGGINGFACE_EMBEDDING_MODEL"=${{ secrets.HUGGINGFACE_EMBEDDING_MODEL}}" >> .env.datax
+
+
 
             # Stop and remove old container if exists
             docker rm -f datax-backend || true

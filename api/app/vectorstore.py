@@ -1,8 +1,9 @@
 # api/app/vectorstore.py
 import os
+import uuid
 import logging
-
 from qdrant_client import QdrantClient
+from qdrant_client.http.models import PointStruct
 from qdrant_client.http import models as rest
 
 logger = logging.getLogger(__name__)
@@ -10,21 +11,17 @@ logger = logging.getLogger(__name__)
 QDRANT_URL = os.getenv("QDRANT_URL")
 COLLECTION_NAME = "sheets"
 
-client = QdrantClient(url=QDRANT_URL,
-                          prefer_grpc=False,         
-                          timeout=30,             
-                         check_compatibility=False)
-
 # Connect to Qdrant
 try:
-    client = QdrantClient(url=QDRANT_URL)
+    client = QdrantClient(url=QDRANT_URL, prefer_grpc=False, timeout=30, check_compatibility=False)
     logger.info(f"✅ Connected to Qdrant at {QDRANT_URL}")
 except Exception as e:
-    logger.error(f"❌ Failed to connect to Qdrant at {QDRANT_URL}: {e}")
+    logger.error(f"❌ Failed to connect to Qdrant: {e}")
     raise
 
-# Create collection if it doesn't exist
-def init_collection(dim: int = 384):  # Because all-MiniLM has 384-dimensional output
+
+def init_collection(dim: int = 384):
+    """Create Qdrant collection if it doesn't exist"""
     try:
         collections = client.get_collections().collections
         if not any(c.name == COLLECTION_NAME for c in collections):
@@ -39,28 +36,30 @@ def init_collection(dim: int = 384):  # Because all-MiniLM has 384-dimensional o
         logger.error(f"❌ Error initializing collection: {e}")
         raise
 
-def insert_vectors(owner_id: str, sheet_id: str, chunks: list[str], vectors: list[list[float]]):
+
+def insert_embeddings(qdrant_client, collection_name, embeddings, metadatas, owner_id):
+    """Insert embeddings into Qdrant with unique UUID ids"""
     try:
         points = []
-        for idx, (chunk, vector) in enumerate(zip(chunks, vectors)):
+        for vector, metadata in zip(embeddings, metadatas):
+            point_id = str(uuid.uuid4())  # ✅ unique id (string)
             points.append(
-                rest.PointStruct(
-                    id=None,
+                PointStruct(
+                    id=point_id,
                     vector=vector,
-                    payload={
-                        "owner_id": owner_id,
-                        "sheet_id": sheet_id,
-                        "text": chunk,
-                    },
+                    payload={"owner_id": owner_id, **metadata}
                 )
             )
-        client.upsert(collection_name=COLLECTION_NAME, points=points)
-        logger.info(f"➕ Inserted {len(points)} vectors for sheet_id={sheet_id}, owner_id={owner_id}")
+
+        qdrant_client.upsert(collection_name=collection_name, points=points)
+        logger.info(f"✅ Inserted {len(points)} embeddings into {collection_name}")
+
     except Exception as e:
-        logger.error(f"❌ Error inserting vectors: {e}")
-        raise
+        logger.error(f"❌ Error inserting vectors: {repr(e)}")
+
 
 def search_vectors(owner_id: str, query_vector: list[float], top_k: int = 5):
+    """Search for similar vectors in Qdrant"""
     try:
         results = client.search(
             collection_name=COLLECTION_NAME,
