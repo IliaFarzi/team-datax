@@ -49,13 +49,22 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
 
     file_url = minio_file_url(DATAX_MINIO_BUCKET_SHEETS, object_name)
 
+
+    
     # Build text chunks for RAG
     text_data = df.to_string(index=False)
     chunks = chunk_text(text_data, max_tokens=200)
 
-    # Embed + insert to Qdrant
-    vectors = embed_text_openrouter(chunks)
-    insert_vectors(user_id, sheet_id, chunks, vectors)
+    # Try embedding but don't fail the entire ingestion
+    try:
+        vectors = embed_text_openrouter(chunks)
+        insert_vectors(user_id, sheet_id, chunks, vectors)
+        embedding_success = True
+    except Exception as e:
+        print(f"⚠️ Failed to create embeddings: {str(e)}")
+        embedding_success = False
+    
+    print(embedding_success)
 
     # Mongo metadata
     meta = {
