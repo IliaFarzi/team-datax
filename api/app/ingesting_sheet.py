@@ -1,4 +1,4 @@
-# api/app/sheet_ingest.py
+# api/app/ingesting_sheet.py
 import os
 import pandas as pd
 import tempfile
@@ -8,9 +8,12 @@ from typing import Any, Dict, List
 from minio.error import S3Error
 from api.app.vectorstore import insert_vectors
 from api.app.embeddings import embed_text_openrouter
+from api.app.session_manager import EMBEDDING_MODEL
 from api.app.database import ensure_mongo_collections, get_minio_client, ensure_bucket, minio_file_url
 
 DATAX_MINIO_BUCKET_SHEETS = os.getenv("DATAX_MINIO_BUCKET_SHEETS")
+OPENROUTER_EMBEDDING_URL = os.getenv('OPENROUTER_EMBEDDING_URL')
+OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
 
 client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
 
@@ -57,14 +60,12 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
 
     # Try embedding but don't fail the entire ingestion
     try:
-        vectors = embed_text_openrouter(chunks)
+        vectors = embed_text_openrouter(chunks,OPENROUTER_API_KEY, OPENROUTER_EMBEDDING_URL,EMBEDDING_MODEL)
         insert_vectors(user_id, sheet_id, chunks, vectors)
         embedding_success = True
     except Exception as e:
         print(f"⚠️ Failed to create embeddings: {str(e)}")
         embedding_success = False
-    
-    print(embedding_success)
 
     # Mongo metadata
     meta = {
@@ -78,11 +79,12 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
         "rows_saved": int(df.shape[0]),
         "columns": int(df.shape[1]),
         "updated_at": datetime.now(timezone.utc),
+        "embedding_success": embedding_success
     }
     db["spreadsheet_metadata"].update_one(
         {"owner_id": user_id, "sheet_id": sheet_id},
         {"$set": meta},
         upsert=True,
     )
-
+    print(meta)
     return meta

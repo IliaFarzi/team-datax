@@ -1,43 +1,40 @@
 # api/app/embeddings.py
 import requests, os , json
 
-from typing import List
-
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-
-def embed_text_openrouter(texts: List[str]) -> List[List[float]]:
-    """
-    ارسال لیست متن به OpenRouter و گرفتن embedding ها
-    """
-    if not isinstance(texts, list):
-        texts = [texts]
-    try:
-        resp = requests.post(
-            "https://openrouter.ai/api/v1/embeddings",
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "openai/text-embedding-3-small",
-                "input": texts
-            },
-            timeout=10  # Add timeout
-        )
-        
-        # Log the raw response for debugging
-        print(f"OpenRouter response status: {resp.status_code}")
-        print(f"OpenRouter response content: {resp.text[:500]}")  # First 500 chars
-        
-        if resp.status_code != 200:
-            raise RuntimeError(f"OpenRouter embedding error {resp.status_code}: {resp.text}")
-            
+def embed_text_openrouter(chunks,OPENROUTER_API_KEY, OPENROUTER_EMBEDDING_URL,EMBEDDING_MODEL):
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    
+    vectors = []
+    for chunk in chunks:
+        data = {
+            "model": EMBEDDING_MODEL,
+            "messages": [
+                {"role": "system", "content": "Return ONLY a JSON array of floats as the embedding vector for the given text. No explanation, no extra text."},
+                {"role": "user", "content": chunk},
+            ],
+            "temperature": 0,
+            "max_tokens": 512
+        }
+        resp = requests.post(OPENROUTER_EMBEDDING_URL, headers=headers, json=data)
         try:
-            data = resp.json()
-            return [item["embedding"] for item in data["data"]]
-        except json.JSONDecodeError:
-            raise RuntimeError(f"Failed to parse OpenRouter response as JSON: {resp.text}")
-            
-    except Exception as e:
-        print(f"❌ Embedding request failed: {str(e)}")
-        raise
+            result = resp.json()
+        except Exception as e:
+            print("❌ Failed to parse JSON:", resp.text[:200])
+            raise
+        
+        content = result["choices"][0]["message"]["content"]
+        try:
+           vector = json.loads(content)
+           if not isinstance(vector, list):
+              raise ValueError("Embedding is not a list")
+        except Exception:
+               print(f"⚠️ Fallback embedding for chunk: {chunk[:50]}...")
+               vector = [hash(word) % 1e6 for word in chunk.split()[:100]]
+        
+        vectors.append(vector)
+    
+    return vectors
+

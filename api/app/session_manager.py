@@ -8,6 +8,7 @@ WELCOME_MESSAGE = "👋 **Welcome!** How can I help you today?"
 #DEFAULT_MODEL = "qwen/qwen2.5-72b-instruct"
 #DEFAULT_MODEL = "mistralai/mistral-nemo"
 DEFAULT_MODEL = "mistralai/mistral-small-3.2-24b-instruct"
+EMBEDDING_MODEL = "mistralai/mistral-small-3.2-24b-instruct"
 
 def initialize_session(request:Request):
     from api.app.agent import get_agent #lazy import
