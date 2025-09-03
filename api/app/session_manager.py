@@ -1,5 +1,6 @@
 # api/app/session_manager.py
 import uuid
+from fastapi import Request
 
 sessions = {}
 WELCOME_MESSAGE = "👋 **Welcome!** How can I help you today?"
@@ -8,17 +9,16 @@ WELCOME_MESSAGE = "👋 **Welcome!** How can I help you today?"
 #DEFAULT_MODEL = "mistralai/mistral-nemo"
 DEFAULT_MODEL = "mistralai/mistral-small-3.2-24b-instruct"
 
-def initialize_session(request):
+def initialize_session(request:Request | None = None):
     from api.app.agent import get_agent #lazy import
     from api.app.chat_router import save_message #lazy import
     session_id = str(uuid.uuid4())
     # Create an agent with a model and a request
-    agent = get_agent(DEFAULT_MODEL, request)
+    agent = get_agent(DEFAULT_MODEL, request) if request else get_agent(DEFAULT_MODEL)
 
     # Save in session memory
     sessions[session_id] = {"agent": agent}
 
     # Initial welcome message
     save_message(session_id, "assistant", WELCOME_MESSAGE)
-
-    return session_id, sessions[session_id], WELCOME_MESSAGE
+    return session_id, sessions[session_id], None
