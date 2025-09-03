@@ -25,7 +25,7 @@ def chunk_text(text: str, max_tokens: int = 200) -> List[str]:
 
 def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame) -> Dict[str, Any]:
     """
-    ذخیره CSV در MinIO، ذخیره متادیتا در Mongo، و درج بردارها در Qdrant
+    Storing CSV in MinIO, storing metadata in Mongo, and inserting vectors in Qdrant
     """
     minio_client = get_minio_client()
     ensure_bucket(minio_client, DATAX_MINIO_BUCKET_SHEETS)

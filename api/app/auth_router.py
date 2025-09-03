@@ -380,16 +380,22 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
         ).execute().get("files", [])
 
         uploaded_to_minio = []
+        skipped_sheets = []
         for f in sheets:
             sheet_id = f["id"]
             sheet_name = f["name"]
 
             svc = build("sheets", "v4", credentials=credentials)
-            values = svc.spreadsheets().values().get(
-                spreadsheetId=sheet_id,
-                range="A1:Z50"  # preview
-            ).execute().get("values", [])
 
+            try:
+                values = svc.spreadsheets().values().get(
+                    spreadsheetId=sheet_id,
+                    range="A1:Z50"  # preview
+                ).execute().get("values", [])
+            except Exception as e:
+                print(f"❌ Google Sheets API error for {sheet_name}: {repr(e)}")
+                skipped_sheets.append({"sheet_name": sheet_name, "error": str(e)})
+                continue  # Skips this sheet and moves to the next one
             if not values:
                 df = pd.DataFrame()
             else:
@@ -401,7 +407,7 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
                 ]
                 df = pd.DataFrame(normalized_rows, columns=headers)
 
-            # ⚡ اینجا از ingest_sheet استفاده می‌کنیم
+            #⚡ Ingest_sheet is called here
             meta = ingest_sheet(
                 user_id=str(user["_id"]),
                 sheet_id=sheet_id,
@@ -409,6 +415,7 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
                 df=df
             )
             uploaded_to_minio.append(meta)
+
 
         print(f"📂 Uploaded {len(uploaded_to_minio)} sheets to MinIO + Qdrant")
     except Exception as e:
@@ -422,6 +429,7 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
         "message": "Google Sheets connected and ingested successfully",
         "google_email": google_email,
         "uploaded_to_minio": uploaded_to_minio,
+        "skipped_sheets": skipped_sheets
     }
 
 
