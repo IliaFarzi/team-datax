@@ -25,7 +25,7 @@ from dotenv import load_dotenv
 from minio.error import S3Error
 
 from api.app.database import ensure_mongo_collections, get_minio_client, ensure_bucket, minio_file_url, DATAX_MINIO_BUCKET_SHEETS
-from api.app.session_manager import sessions, initialize_session
+from api.app.session_manager import sessions
 from api.app.sheet_ingest import ingest_sheet
 from api.app.models import SignupIn, LoginIn, VerifyIn, ForgotPasswordIn, ResetPasswordIn, ExchangeCodeIn
 
@@ -168,7 +168,6 @@ async def signup(payload: SignupIn):
 
     # ⚡ Now we put the real user_id in the token
     token = create_access_token({"sub": str(result.inserted_id)})
-    session_id, sessions[session_id], _ = initialize_session()
     success = {
         "message": "Signup successful. Please verify your account with the code.",
         "user_id": str(result.inserted_id),
@@ -199,24 +198,10 @@ def login(payload: LoginIn):
 
     # Generate JWT token and create session
     token = create_access_token({"sub": str(user["_id"])})
-    session_id, sessions[session_id], _ = initialize_session()
-
-    # Log data for backend debugging
-    login_data = {
-        "message": "Login successful",
-        "token": token,
-        "session_id": session_id,
-        "user": {
-            "id": str(user["_id"]),
-            "email": user["email"],
-            "name": user.get("name")
-        }
-    }
 
     success = {
     "message": "Login successful",
     "token": token,
-    "session_id": session_id,
     "user": {
         "id": str(user["_id"]),
         "email": user["email"],
