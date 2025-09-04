@@ -13,7 +13,7 @@ def get_llm(model_name: str = DEFAULT_MODEL):
         api_key=OPENROUTER_API_KEY,
         base_url=OPENROUTER_BASE_URL,
         temperature=0.3,
-        model_kwargs={"max_tokens":1024}
+        max_tokens=1024
     )
 
 def get_rag_agent(tools=[]):

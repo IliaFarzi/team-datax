@@ -69,7 +69,6 @@ jobs:
 
             # Create .env.datax file with environment variables
             echo "OPENROUTER_API_BASE=${{ secrets.OPENROUTER_API_BASE }}" > .env.datax
-            echo "OPENROUTER_EMBEDDING_URL=${{ secrets.OPENROUTER_EMBEDDING_URL }}" > .env.datax
             echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env.datax
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.datax
             echo "DATAX_MONGO_URI=${{ secrets.DATAX_MONGO_URI }}" >> .env.datax
