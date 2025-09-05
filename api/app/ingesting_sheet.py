@@ -19,7 +19,7 @@ client, db, chat_sessions_collection, users_collection = ensure_mongo_collection
 
 
 def chunk_text(text: str, max_tokens: int = 200) -> List[str]:
-    """ساده‌ترین روش chunk کردن: هر N کلمه یک chunk"""
+    """The simplest way to chunk: every N words is a chunk"""
     words = text.split()
     return [
         " ".join(words[i:i + max_tokens])
