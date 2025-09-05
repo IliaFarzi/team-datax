@@ -8,7 +8,7 @@ from api.app.session_manager import sessions, initialize_session
 
 client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
 
-chat_router = APIRouter(prefix="/Chat", tags=['Chat with LLM'])
+chat_router = APIRouter(prefix="/Chat", tags=['Chat with DATAX'])
 
 @chat_router.post("/send_message")
 def send_message(message: UserMessage, request:Request):

@@ -10,8 +10,9 @@ import os
 from api.app.chat_router import chat_router
 from api.app.auth_router import auth_router
 from api.app.upload_router import upload_router
+from api.app.file_router import file_router
 
-from api.app.google_sheets import  google_sheets_preview_router
+from api.app.sheet_tools import  google_sheets_preview_router
 
 load_dotenv(".env")
 
@@ -20,7 +21,7 @@ VPS_HOST=os.getenv('VPS_HOST')
 VPS_URL=os.getenv('VPS_URL')
 FRONTEND_URL = os.getenv("FRONTEND_URL")  
 
-app = FastAPI(title="Smart Support Chatbot", description="API for chat, file upload, Google Sheets integration, and data analysis")
+app = FastAPI(title="DATAX", description="API for chat, file upload, Google Sheets integration, and data analysis")
 
 
 # ✅ Session middleware 
@@ -43,8 +44,8 @@ app.add_middleware(
 
 # ✅ Register routers
 app.include_router(auth_router)
-app.include_router(google_sheets_preview_router)
 app.include_router(upload_router)
+app.include_router(file_router)
 app.include_router(chat_router)
 
 @app.get("/")

@@ -15,7 +15,7 @@ load_dotenv(".env")
 client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
 logger = logging.getLogger(__name__)
 
-upload_router = APIRouter(prefix="/upload", tags=["File Upload"])
+upload_router = APIRouter(prefix="/upload", tags=["File Upload to Minio"])
 
 # api/app/upload_router.py
 @upload_router.post("/")

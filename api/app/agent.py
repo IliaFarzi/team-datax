@@ -7,8 +7,11 @@ from fastapi import Request
 
 import os
 from dotenv import load_dotenv
+import logging 
 
-from api.app.google_sheets import (
+logger = logging.getLogger(__name__)
+
+from api.app.sheet_tools import (
     list_google_sheets,
     preview_google_sheet,
     load_google_sheet_to_dataframe,
@@ -32,22 +35,28 @@ def make_wrapped_tools(request: Request):
         results = search_vectors(user_id, query_vector, top_k=top_k)
         texts = [r.payload.get("chunk", "") for r in results]
         stitched = "\n\n".join(texts)
+        logger.info("Using SearchVectorDB tool 🔧")
         return stitched or "No relevant context found."
 
     # Google Sheets tools
     def wrapped_list_google_sheets():
+        logger.info("Using ListGoogleSheets tool 🔧")
         return list_google_sheets(user_id=user_id)
 
     def wrapped_list_private_public_sheets():
+        logger.info("Using ListPrivatePublicSheets tool 🔧")
         return list_private_public_sheets(user_id=user_id)
 
     def wrapped_preview_google_sheet(sheet_id: str):
+        logger.info("Using PreviewGoogleSheet tool 🔧")
         return preview_google_sheet(sheet_id=sheet_id, user_id=user_id)
 
     def wrapped_load_google_sheet_to_dataframe(sheet_id: str):
+        logger.info("Using LoadGoogleSheet tool 🔧")
         return load_google_sheet_to_dataframe(sheet_id=sheet_id, user_id=user_id)
 
     def wrapped_analyze_google_sheet(sheet_id: str, operation: str, column: str, value: str = None):
+        logger.info("Using AnalyzeGoogleSheet tool 🔧")
         return analyze_google_sheet(
             sheet_id=sheet_id,
             user_id=user_id,
@@ -57,13 +66,16 @@ def make_wrapped_tools(request: Request):
         )
 
     def wrapped_extract_headers_tool(sheet_id: str):
+        logger.info("Using ExtractSheetHeaders tool 🔧")
         return extract_headers_tool(sheet_id=sheet_id, user_id=user_id)
 
     # Upload tools
     def wrapped_list_uploaded_files():
+        logger.info("Using ListUploadedFiles tool 🔧")
         return list_uploaded_files(user_id=user_id)
 
     def wrapped_analyze_uploaded_file(filename: str):
+        logger.info("Using AnalyzeUploadedFile tool 🔧")
         return analyze_uploaded_file(filename=filename, user_id=user_id)
 
     tools = [
