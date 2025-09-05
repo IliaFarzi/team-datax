@@ -18,10 +18,21 @@ from api.app.google_sheets import (
 )
 from api.app.upload_router import analyze_uploaded_file, list_uploaded_files
 
+from api.app.embeddings import embed_text
+from api.app.vectorstore import search_vectors
+
 
 def make_wrapped_tools(request: Request):
 
     user_id = str(request.session.get("user_id"))
+
+    # RAG tool
+    def wrapped_search_vector_db(query: str, top_k: int = 5):
+        query_vector = embed_text([query])[0]
+        results = search_vectors(user_id, query_vector, top_k=top_k)
+        texts = [r.payload.get("chunk", "") for r in results]
+        stitched = "\n\n".join(texts)
+        return stitched or "No relevant context found."
 
     # Google Sheets tools
     def wrapped_list_google_sheets():
@@ -64,6 +75,8 @@ def make_wrapped_tools(request: Request):
         StructuredTool.from_function(func=wrapped_extract_headers_tool, name="ExtractSheetHeaders", description="Extract headers from a Google Sheet."),
         StructuredTool.from_function(func=wrapped_list_uploaded_files, name="ListUploadedFiles", description="List all files uploaded by the logged-in user."),
         StructuredTool.from_function(func=wrapped_analyze_uploaded_file, name="AnalyzeUploadedFile", description="Analyze an uploaded CSV/Excel file."),
+        # 🔹 New RAG tool
+        StructuredTool.from_function(func=wrapped_search_vector_db,name="SearchVectorDB",description="Search the user's uploaded files and Google Sheets content using embeddings.")
     ]
     return tools
 
