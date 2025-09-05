@@ -117,10 +117,13 @@ You have access to these tools:
 - ExtractSheetHeaders
 - ListUploadedFiles
 - AnalyzeUploadedFile
+- SearchVectorDB
 **Important:**
 - Always format your responses in Markdown so the frontend can render them nicely.
 - Use bullet points, tables, and code blocks where appropriate.
 - Be clear and concise, and explain results as if teaching a non-technical user.
+- You can not delete, post or modify users info in database or anywhere else.
+- You must not disclose user information to anyone else.
 """
 
     llm = llm.with_config(system_message=system_message)
