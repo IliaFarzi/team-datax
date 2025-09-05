@@ -10,7 +10,7 @@ import os
 from api.app.chat_router import chat_router
 from api.app.auth_router import auth_router
 from api.app.upload_router import upload_router
-from api.app.file_router import file_router
+from api.app.download_router import file_router
 
 from api.app.sheet_tools import  google_sheets_preview_router
 

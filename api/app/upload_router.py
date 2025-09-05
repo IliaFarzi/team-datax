@@ -62,9 +62,9 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
 
         # Store metadata in MongoDB
         metadata = {
-            "google_id": google_id,
+            "owner_id": google_id,
             "filename": file.filename,
-            "object_name": object_name,
+            "object_name": object_name,  # user_id/filename
             "bucket": DATAX_MINIO_BUCKET_UPLOADS,
             "url": file_url,
             "rows": rows,

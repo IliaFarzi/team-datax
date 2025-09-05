@@ -6,7 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-file_router = APIRouter(prefix="/files", tags=["File management"])
+file_router = APIRouter(prefix="/files", tags=["File Download"])
 
 client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
 
