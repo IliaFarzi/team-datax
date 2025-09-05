@@ -79,6 +79,7 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
         "sheet_name": sheet_name,
         "bucket": DATAX_MINIO_BUCKET_SHEETS,
         "object_name": object_name,
+        "filename": f"{sheet_id}.csv",
         "file_url": file_url,
         "headers": df.columns.tolist(),
         "rows_saved": int(df.shape[0]),
