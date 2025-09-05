@@ -16,8 +16,7 @@ from api.app.sheet_tools import (
     preview_google_sheet,
     load_google_sheet_to_dataframe,
     analyze_google_sheet,
-    list_private_public_sheets,
-    extract_headers_tool
+    list_private_public_sheets
 )
 from api.app.upload_router import analyze_uploaded_file, list_uploaded_files
 
@@ -65,10 +64,6 @@ def make_wrapped_tools(request: Request):
             value=value
         )
 
-    def wrapped_extract_headers_tool(sheet_id: str):
-        logger.info("Using ExtractSheetHeaders tool 🔧")
-        return extract_headers_tool(sheet_id=sheet_id, user_id=user_id)
-
     # Upload tools
     def wrapped_list_uploaded_files():
         logger.info("Using ListUploadedFiles tool 🔧")
@@ -84,7 +79,6 @@ def make_wrapped_tools(request: Request):
         StructuredTool.from_function(func=wrapped_preview_google_sheet, name="PreviewGoogleSheet", description="Preview first 5 rows of a sheet."),
         StructuredTool.from_function(func=wrapped_load_google_sheet_to_dataframe, name="LoadGoogleSheet", description="Load a sheet into a DataFrame."),
         StructuredTool.from_function(func=wrapped_analyze_google_sheet, name="AnalyzeGoogleSheet", description="Perform analysis like sum, mean, filter."),
-        StructuredTool.from_function(func=wrapped_extract_headers_tool, name="ExtractSheetHeaders", description="Extract headers from a Google Sheet."),
         StructuredTool.from_function(func=wrapped_list_uploaded_files, name="ListUploadedFiles", description="List all files uploaded by the logged-in user."),
         StructuredTool.from_function(func=wrapped_analyze_uploaded_file, name="AnalyzeUploadedFile", description="Analyze an uploaded CSV/Excel file."),
         # 🔹 New RAG tool
