@@ -12,8 +12,6 @@ from api.app.auth_router import auth_router
 from api.app.upload_router import upload_router
 from api.app.download_router import file_router
 
-from api.app.sheet_tools import  google_sheets_preview_router
-
 load_dotenv(".env")
 
 SECRET_KEY = os.getenv("SESSION_SECRET_KEY")
