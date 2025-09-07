@@ -3,7 +3,7 @@ import uuid
 from fastapi import Request
 
 sessions = {}
-WELCOME_MESSAGE = "👋 **Welcome!** How can I help you today?"
+WELCOME_MESSAGE = "👋 Welcome! My name is **DATAX**. I’m your data analysis assistant. I can help you analyze Google Sheets and uploaded files."
 #DEFAULT_MODEL = "mistralai/mistral-7b-instruct"
 #DEFAULT_MODEL = "qwen/qwen2.5-72b-instruct"
 #DEFAULT_MODEL = "mistralai/mistral-nemo"
