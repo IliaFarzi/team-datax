@@ -44,11 +44,22 @@ def make_wrapped_tools(request: Request):
         logger.info("Using ShowAllData tool 🔧")
         uploads = list_uploaded_files(user_id=user_id)
         sheets = list_google_sheets(user_id=user_id)
-        return {
-            "uploads": uploads,
-            "sheets": sheets
-        }
 
+        if not uploads and not sheets:
+            return "هیچ فایلی یا شیتی پیدا نشد."
+
+        # 📌 Markdown the output so it can be displayed directly to the user
+        md = "### 📂 داده‌های شما\n"
+        if uploads:
+            md += "\n**فایل‌های آپلود شده:**\n"
+            for f in uploads:
+                md += f"- {f}\n"
+        if sheets:
+            md += "\n**گوگل شیت‌ها:**\n"
+            for s in sheets:
+                md += f"- {s}\n"
+
+        return md
 
     # Google Sheets tools
     def wrapped_list_google_sheets():
