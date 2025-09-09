@@ -162,7 +162,7 @@ def get_agent(model_name: str, request: Request):
 
     tools = make_wrapped_tools(request)
 
-    return create_react_agent(llm, tools=tools, recursion_limit=5,
+    return create_react_agent(llm, tools=tools,
                               pre_model_hook=pre_model_hook, # History management
                               response_format={
                                 "type": "json_schema",
