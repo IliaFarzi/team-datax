@@ -2,6 +2,7 @@
 from langgraph.prebuilt import create_react_agent
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import StructuredTool
+from langgraph.checkpoint.memory import MemorySaver 
 
 from fastapi import Request
 
@@ -21,6 +22,7 @@ from api.app.sheet_tools import (
 from api.app.upload_router import analyze_uploaded_file, list_uploaded_files
 
 from api.app.embeddings import embed_text
+
 from api.app.vectorstore import search_vectors
 
 
@@ -36,6 +38,17 @@ def make_wrapped_tools(request: Request):
         stitched = "\n\n".join(texts)
         logger.info("Using SearchVectorDB tool 🔧")
         return stitched or "No relevant context found."
+    
+    # Show all data in one place
+    def wrapped_show_all_data():
+        logger.info("Using ShowAllData tool 🔧")
+        uploads = list_uploaded_files(user_id=user_id)
+        sheets = list_google_sheets(user_id=user_id)
+        return {
+            "uploads": uploads,
+            "sheets": sheets
+        }
+
 
     # Google Sheets tools
     def wrapped_list_google_sheets():
@@ -82,8 +95,9 @@ def make_wrapped_tools(request: Request):
         StructuredTool.from_function(func=wrapped_list_uploaded_files, name="ListUploadedFiles", description="List all files uploaded by the logged-in user."),
         StructuredTool.from_function(func=wrapped_analyze_uploaded_file, name="AnalyzeUploadedFile", description="Analyze an uploaded CSV/Excel file."),
         # 🔹 New RAG tool
-        StructuredTool.from_function(func=wrapped_search_vector_db,name="SearchVectorDB",description="Search the user's uploaded files and Google Sheets content using embeddings.")
-    ]
+        StructuredTool.from_function(func=wrapped_search_vector_db,name="SearchVectorDB",description="Search the user's uploaded files and Google Sheets content using embeddings."),
+        # 🔹Show all data in one place
+        StructuredTool.from_function(func=wrapped_show_all_data,name="ShowAllData",description="Show all data (uploads and sheets) together.")]
     return tools
 
 
@@ -93,6 +107,13 @@ load_dotenv(".env")
 # Access API keys
 openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
 openrouter_base_url = os.getenv("OPENROUTER_API_BASE")
+
+def pre_model_hook(state):
+    """Before calling LLM → keep only the last 5 messages"""
+    messages = state.get("messages", [])
+    if len(messages) > 10:
+        messages = messages[-5:]
+    return {"messages": messages}
 
 def get_agent(model_name: str, request: Request):
     llm = ChatOpenAI(
@@ -126,6 +147,7 @@ def get_agent(model_name: str, request: Request):
     - ListUploadedFiles
     - AnalyzeUploadedFile
     - SearchVectorDB
+    - ShowAllData
 
     **Important:**
     - Always format your responses in Markdown so the frontend can render them nicely.
@@ -133,11 +155,27 @@ def get_agent(model_name: str, request: Request):
     - Be clear and concise, and explain results as if teaching a non-technical user.
     - Never delete, post, or modify user info in any database or service.
     - Never disclose user information to anyone.
+    - When the user asks to "analyze everything", first list all files and sheets, then ask the user to select **one at a time**. Do not try to analyze all at once.
     """
-
 
     llm = llm.with_config(system_message=system_message)
 
     tools = make_wrapped_tools(request)
 
-    return create_react_agent(llm, tools=tools)
+    return create_react_agent(llm, tools=tools, recursion_limit=5,
+                              pre_model_hook=pre_model_hook, # History management
+                              response_format={
+                                "type": "json_schema",
+                                "schema": {
+                                    "title": "DATAXResponse",
+                                    "type": "object",
+                                    "properties": {
+                                        "answer": {"type": "string", "description": "The main explanation or analysis."},
+                                    },
+                                    "required": ["answer"],
+                                },
+                            },
+                            checkpointer=MemorySaver(),  # Save simple state
+                            recursion_limit=5,
+                            version="v2",
+                            name="DATAX-Agent")
