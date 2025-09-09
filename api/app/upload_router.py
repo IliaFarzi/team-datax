@@ -135,7 +135,7 @@ def analyze_uploaded_file(filename: str, user_id: str, operation: str, column: s
 
 # List of user uploaded files
 def list_uploaded_files(user_id: str):
-    files = list(db["uploaded_files"].find({"user_id": user_id}, {"_id": 0}))
+    files = list(db["uploaded_files"].find({"owner_id": user_id}, {"_id": 0}))
     return files
 
 
