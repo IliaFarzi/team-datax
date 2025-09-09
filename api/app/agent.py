@@ -163,18 +163,7 @@ def get_agent(model_name: str, request: Request):
     tools = make_wrapped_tools(request)
 
     return create_react_agent(llm, tools=tools,
-                              pre_model_hook=pre_model_hook, # History management
-                              response_format={
-                                "type": "json_schema",
-                                "schema": {
-                                    "title": "DATAXResponse",
-                                    "type": "object",
-                                    "properties": {
-                                        "answer": {"type": "string", "description": "The main explanation or analysis."},
-                                    },
-                                    "required": ["answer"],
-                                },
-                            },
+                            pre_model_hook=pre_model_hook, # History management
                             checkpointer=MemorySaver(),  # Save simple state
                             version="v2",
                             name="DATAX-Agent")
