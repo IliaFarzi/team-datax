@@ -10,7 +10,7 @@ import pandas as pd
 
 from fastapi import APIRouter, Request
 
-from api.app.database import get_minio_client, db, DATAX_MINIO_BUCKET_SHEETS
+from api.app.database import get_minio_client, DATAX_MINIO_BUCKET_SHEETS
 
 from api.app.database import ensure_mongo_collections
 
