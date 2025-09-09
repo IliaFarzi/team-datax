@@ -123,7 +123,6 @@ def get_agent(model_name: str, request: Request):
     - LoadGoogleSheet
     - AnalyzeGoogleSheet
     - ListPrivatePublicSheets
-    - ExtractSheetHeaders
     - ListUploadedFiles
     - AnalyzeUploadedFile
     - SearchVectorDB
