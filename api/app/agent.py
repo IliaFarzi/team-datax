@@ -176,6 +176,5 @@ def get_agent(model_name: str, request: Request):
                                 },
                             },
                             checkpointer=MemorySaver(),  # Save simple state
-                            recursion_limit=5,
                             version="v2",
                             name="DATAX-Agent")

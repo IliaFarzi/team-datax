@@ -33,9 +33,14 @@ def send_message(message: UserMessage, request:Request):
     try:
         # ✅ Each session_id creates a thread_id for independent memory
         response = agent.invoke(
-            {"messages": [{"role": "user", "content": content}]},
-            config=RunnableConfig(configurable={"thread_id": session_id}),
-        )
+        {"messages": [{"role": "user", "content": content}]},
+        config=RunnableConfig(
+            configurable={
+                "thread_id": session_id,
+                "recursion_limit": 5  # ✅ Put it here, not inside create_react_agent
+            }
+        ),
+    )
 
         ai_message = response["messages"][-1]
         output = ai_message.content
