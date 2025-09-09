@@ -16,8 +16,7 @@ from api.app.sheet_tools import (
     list_google_sheets,
     preview_google_sheet,
     load_google_sheet_to_dataframe,
-    analyze_google_sheet,
-    list_private_public_sheets
+    analyze_google_sheet
 )
 from api.app.upload_router import analyze_uploaded_file, list_uploaded_files
 
@@ -66,10 +65,6 @@ def make_wrapped_tools(request: Request):
         logger.info("Using ListGoogleSheets tool 🔧")
         return list_google_sheets(user_id=user_id)
 
-    def wrapped_list_private_public_sheets():
-        logger.info("Using ListPrivatePublicSheets tool 🔧")
-        return list_private_public_sheets(user_id=user_id)
-
     def wrapped_preview_google_sheet(sheet_id: str):
         logger.info("Using PreviewGoogleSheet tool 🔧")
         return preview_google_sheet(sheet_id=sheet_id, user_id=user_id)
@@ -99,7 +94,6 @@ def make_wrapped_tools(request: Request):
 
     tools = [
         StructuredTool.from_function(func=wrapped_list_google_sheets, name="ListGoogleSheets", description="List all Google Sheets available to the logged-in user."),
-        StructuredTool.from_function(func=wrapped_list_private_public_sheets, name="ListPrivatePublicSheets", description="List private and public Google Sheets."),
         StructuredTool.from_function(func=wrapped_preview_google_sheet, name="PreviewGoogleSheet", description="Preview first 5 rows of a sheet."),
         StructuredTool.from_function(func=wrapped_load_google_sheet_to_dataframe, name="LoadGoogleSheet", description="Load a sheet into a DataFrame."),
         StructuredTool.from_function(func=wrapped_analyze_google_sheet, name="AnalyzeGoogleSheet", description="Perform analysis like sum, mean, filter."),
@@ -154,7 +148,6 @@ def get_agent(model_name: str, request: Request):
     - PreviewGoogleSheet
     - LoadGoogleSheet
     - AnalyzeGoogleSheet
-    - ListPrivatePublicSheets
     - ListUploadedFiles
     - AnalyzeUploadedFile
     - SearchVectorDB
