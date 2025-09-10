@@ -160,6 +160,7 @@ async def signup(payload: SignupIn):
         "password_hash": hash_password(payload.password),
         "verification_code": hash_password(verification_code),
         "otp_expires_at": datetime.now(timezone.utc) + timedelta(minutes=10),
+        "otp_attempts": 0,
         "is_verified": False,
         "created_at": datetime.now(timezone.utc),
         "last_login": None,
@@ -221,9 +222,15 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    if user.get("otp_expires_at") < datetime.now(timezone.utc):
+    # Convert otp_expires_at to offset-aware if naive
+    otp_expires_at = user.get("otp_expires_at")
+    if otp_expires_at and not otp_expires_at.tzinfo:
+        otp_expires_at = otp_expires_at.replace(tzinfo=timezone.utc)
+        print(f"Converted otp_expires_at to UTC: {otp_expires_at}")  # Debug
+
+    if otp_expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="OTP has expired")
-    
+
     if user.get("otp_attempts", 0) >= 5:
         raise HTTPException(status_code=429, detail="Too many attempts. Request a new OTP.")
 
