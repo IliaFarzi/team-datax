@@ -25,13 +25,16 @@ if not all([MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASSWORD, MAIL_FROM_NAME, MAIL
 def send_email(to_address, subject, body):
     try:
         # Enforce TLS
+        print(f"Attempting to connect to {MAIL_HOST}:{MAIL_PORT}")
         context = create_default_context()
 
         # Connect to the server
         with smtplib.SMTP_SSL(
              MAIL_HOST, MAIL_PORT, context=context
         ) as server:
+            print("Connected to SMTP server")
             server.login(MAIL_USER, MAIL_PASSWORD)
+            print("Logged in successfully")
 
             # Prepare the email
             msg = MIMEMultipart()
@@ -44,8 +47,12 @@ def send_email(to_address, subject, body):
             # Send the email
             server.sendmail(MAIL_FROM_ADDRESS, to_address, msg.as_string())
             print(f"Email sent to {to_address} successfully!")
+    except smtplib.SMTPConnectError as e:
+        raise Exception(f"SMTP connection failed: {str(e)} (Check MAIL_HOST and DNS)")
+    except smtplib.SMTPAuthenticationError as e:
+        raise Exception(f"SMTP authentication failed: {str(e)} (Check MAIL_USER and MAIL_PASSWORD)")
     except Exception as e:
-         raise Exception(f"Failed to send email: {str(e)}")
+        raise Exception(f"Failed to send email: {str(e)}")
 
 
 def send_otp(email: str, otp: str):
@@ -69,4 +76,4 @@ def send_otp(email: str, otp: str):
 
     send_email(email, subject, body)
 
-send_otp("heidarym.iust@gmail.com", "123456")
+send_otp(www.heidary933@gmail.com, 123456)
