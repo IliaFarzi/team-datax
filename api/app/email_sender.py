@@ -6,6 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from ssl import create_default_context
 
+
 load_dotenv = (".env")
 
 MAIL_HOST = os.getenv("MAIL_HOST")
@@ -14,7 +15,10 @@ MAIL_USER = os.getenv("MAIL_USER")
 MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
 MAIL_FROM_NAME = os.getenv("MAIL_FROM_NAME")
 MAIL_FROM_ADDRESS = os.getenv("MAIL_FROM_ADDRESS")
+FRONTEND_URL = os.getenv('FRONTEND_URL')
 
+if not all([MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASSWORD, MAIL_FROM_NAME, MAIL_FROM_ADDRESS]):
+    raise ValueError("Missing email configuration environment variables")
 
 
 def send_email(to_address, subject, body):
@@ -40,7 +44,7 @@ def send_email(to_address, subject, body):
             server.sendmail(MAIL_FROM_ADDRESS, to_address, msg.as_string())
             print(f"Email sent to {to_address} successfully!")
     except Exception as e:
-        print(f"Failed to send email: {e}")
+         raise Exception(f"Failed to send email: {str(e)}")
 
 
 def send_otp(email: str, otp: str):
@@ -48,10 +52,18 @@ def send_otp(email: str, otp: str):
 
     subject = "Your OTP Code For DATAX"
     body = f"""
-        <h1>Your OTP Code</h1>
-        <p>
-            Your OTP code is: <strong>{otp}</strong>
-        </p>
-        """
+    <html>
+        <body style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
+            <h1 style="color: #2c3e50;">DATAX OTP Verification</h1>
+            <p>Your one-time password (OTP) is: <strong style="font-size: 1.2em;">{otp}</strong></p>
+            <p>This code is valid for 10 minutes.</p>
+            <p style="margin-top: 20px;">
+                <a href="{FRONTEND_URL}/verify?otp={otp}" style="background: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Verify Now</a>
+            </p>
+            <p>If you did not request this, please ignore this email.</p>
+            <p style="color: #7f8c8d;">Best regards,<br>DATAX Team</p>
+        </body>
+    </html>
+    """
 
     send_email(email, subject, body)

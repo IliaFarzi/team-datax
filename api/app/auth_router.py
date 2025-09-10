@@ -1,33 +1,30 @@
 # api/app/auth_router.py
-from fastapi import APIRouter, HTTPException, Request, Depends, Body
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, HTTPException, Depends, Body
 from fastapi.security import OAuth2PasswordBearer
 
-from typing import List, Dict, Any
+from typing import Dict, Any
 
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request as GoogleRequest
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from bson import ObjectId
 
 import os
-import tempfile
+import secrets
 import pandas as pd
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
-from minio.error import S3Error
 
-from api.app.database import ensure_mongo_collections, get_minio_client, ensure_bucket, minio_file_url, DATAX_MINIO_BUCKET_SHEETS
+from api.app.database import ensure_mongo_collections
 from api.app.session_manager import sessions
 from api.app.ingesting_sheet import ingest_sheet
 from api.app.models import SignupIn, LoginIn, VerifyIn, ForgotPasswordIn, ResetPasswordIn, ExchangeCodeIn
+from api.app.email_sender import send_otp
 
 # =========================
 # Environment & constants
@@ -151,14 +148,20 @@ async def signup(payload: SignupIn):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    verification_code = "123456"
+
+    verification_code = ''.join(secrets.choice('0123456789') for _ in range(6))  # 6-digit OTP
+    try:
+       send_otp(payload.email, verification_code)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send OTP: {str(e)}")
 
     user_doc = {
         "full_name": payload.full_name,
         "email": payload.email,
         "phone": payload.phone,
         "password_hash": hash_password(payload.password),
-        "verification_code": verification_code,
+        "verification_code": hash_password(verification_code),
+        "otp_expires_at": datetime.now(timezone.utc) + timedelta(minutes=10),
         "is_verified": False,
         "created_at": datetime.now(timezone.utc),
         "last_login": None,
@@ -169,7 +172,7 @@ async def signup(payload: SignupIn):
     # ⚡ Now we put the real user_id in the token
     token = create_access_token({"sub": str(result.inserted_id)})
     success = {
-        "message": "Signup successful. Please verify your account with the code.",
+        "message": "Signup successful. An OTP has been sent to your email. Please verify your account.",
         "user_id": str(result.inserted_id),
         "token": token,
         "token_type": "bearer"
@@ -220,25 +223,33 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    stored_code = user.get("verification_code")
-    if payload.code != stored_code:
+    if user.get("otp_expires_at") < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="OTP has expired")
+    
+    if user.get("otp_attempts", 0) >= 5:
+        raise HTTPException(status_code=429, detail="Too many attempts. Request a new OTP.")
+
+    if not verify_password(payload.code, user.get("verification_code")):
+        db["users"].update_one({"_id": user["_id"]}, {"$inc": {"otp_attempts": 1}})
         raise HTTPException(status_code=400, detail="Invalid verification code")
     
     db["users"].update_one(
         {"_id": user["_id"]},
         {"$set": {
-        "is_verified": True,
-        "verified_at": datetime.now(timezone.utc)}})
-    # Generate JWT token and create session
+            "is_verified": True,
+            "verified_at": datetime.now(timezone.utc),
+            "otp_attempts": 0
+        }}
+    )
     token = create_access_token({"sub": str(user["_id"])})
     success = {
-    "message": "Account verified successfully",
-    "token": token,
-    "email": user.get("email"),
-    "id": str(user["_id"]),
-    "created_at": user.get("created_at"),
-    "is_verified": user.get("is_verified"),}
-
+        "message": "Account verified successfully",
+        "token": token,
+        "email": user.get("email"),
+        "id": str(user["_id"]),
+        "created_at": user.get("created_at"),
+        "is_verified": user.get("is_verified"),
+    }
     print(success)
     return success
 
