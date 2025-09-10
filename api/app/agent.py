@@ -3,6 +3,7 @@ from langgraph.prebuilt import create_react_agent
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import StructuredTool
 from langgraph.checkpoint.memory import MemorySaver 
+from langchain_core.output_parsers import StrOutputParser
 
 from fastapi import Request
 
@@ -165,9 +166,11 @@ def get_agent(model_name: str, request: Request):
     llm = llm.with_config(system_message=system_message)
 
     tools = make_wrapped_tools(request)
-
-    return create_react_agent(llm, tools=tools,
+    # 🟢 Pipe agent → parser to always return clean output
+    agent = create_react_agent(llm, tools=tools,
                             pre_model_hook=pre_model_hook, # History management
                             checkpointer=MemorySaver(),  # Save simple state
                             version="v2",
                             name="DATAX-Agent")
+    
+    return agent | StrOutputParser()
