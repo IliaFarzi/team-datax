@@ -23,9 +23,16 @@ DATAX_MONGO_URI = os.getenv("DATAX_MONGO_URI")
 DATAX_MONGO_DB_NAME = os.getenv("DATAX_MONGO_DB_NAME")
 DATAX_MONGO_COLLECTION_NAME = os.getenv("DATAX_MONGO_COLLECTION_NAME")
 
-# Check for the existence of environment variables
+# =========================
+# MongoDB config
+# =========================
+DATAX_MONGO_URI = os.getenv("DATAX_MONGO_URI")
+DATAX_MONGO_DB_NAME = os.getenv("DATAX_MONGO_DB_NAME")
+DATAX_MONGO_COLLECTION_NAME = os.getenv("DATAX_MONGO_COLLECTION_NAME")
+
+# Check for MongoDB environment variables
 if not all([DATAX_MONGO_URI, DATAX_MONGO_DB_NAME, DATAX_MONGO_COLLECTION_NAME]):
-    logger.error("Missing MongoDB environment variables: DATAX_MONGO_URI, DATAX_MONGO_DB_NAME, DATAX_MONGO_COLLECTION_NAME")
+    print("❌ Missing MongoDB environment variables: DATAX_MONGO_URI, DATAX_MONGO_DB_NAME, DATAX_MONGO_COLLECTION_NAME")
     raise ValueError("MongoDB environment variables are not set")
 
 def get_mongo_client() -> MongoClient:
@@ -39,75 +46,42 @@ def get_mongo_client() -> MongoClient:
     try:
         client = MongoClient(DATAX_MONGO_URI, server_api=ServerApi('1'))
         client.admin.command('ping')
-        logger.info("✅ Pinged your deployment. Connected to MongoDB successfully!")
         return client
     except ConnectionFailure as e:
-        logger.error(f"❌ Failed to connect to MongoDB: {e}")
+        print(f"❌ Failed to connect to MongoDB: {e}")
         raise
     except Exception as e:
-        logger.error(f"❌ Unexpected error connecting to MongoDB: {e}")
+        print(f"❌ Unexpected error connecting to MongoDB: {e}")
         raise
 
 def ensure_mongo_collections() -> tuple:
     """
-    Ensure MongoDB database and collections exist.
+    Return MongoDB client, database, and collections without redundant checks.
     Returns:
         tuple: (MongoClient, database, chat_sessions_collection, users_collection)
-    Raises:
-        ValueError: If environment variables are missing.
-        ConnectionFailure: If connection to MongoDB fails.
     """
+    client = get_mongo_client()
+    db = client[DATAX_MONGO_DB_NAME]
+    chat_sessions_collection = db[DATAX_MONGO_COLLECTION_NAME]
+    users_collection = db["users"]
+    return client, db, chat_sessions_collection, users_collection
+
+# =========================
+# Init check (runs once at import)
+# =========================
+# MongoDB init
+if DATAX_MONGO_URI and DATAX_MONGO_DB_NAME and DATAX_MONGO_COLLECTION_NAME:
+    print("\n================ MongoDB Connection Debug ================")
+    print(f"📌 DATAX_MONGO_URI: {DATAX_MONGO_URI[:20]}...")  # Hide sensitive part
+    print(f"📌 DATAX_MONGO_DB_NAME: {DATAX_MONGO_DB_NAME}")
+    print(f"📌 DATAX_MONGO_COLLECTION_NAME: {DATAX_MONGO_COLLECTION_NAME}")
     try:
-        client = get_mongo_client()
-        db = client[DATAX_MONGO_DB_NAME]
-        chat_sessions_collection = db[DATAX_MONGO_COLLECTION_NAME]
-        users_collection = db["users"]
-
-        # Check the existence of the database
-        db_list = client.list_database_names()
-        if DATAX_MONGO_DB_NAME in db_list:
-            logger.info(f"✅ Database '{DATAX_MONGO_DB_NAME}' exists.")
-        else:
-            logger.info(f"ℹ️ Database '{DATAX_MONGO_DB_NAME}' will be created on first use.")
-
-        # Checking for the existence of collections
-        col_list = db.list_collection_names()
-        if DATAX_MONGO_COLLECTION_NAME in col_list:
-            logger.info(f"✅ Collection '{DATAX_MONGO_COLLECTION_NAME}' exists.")
-        else:
-            logger.info(f"ℹ️ Collection '{DATAX_MONGO_COLLECTION_NAME}' will be created on first use.")
-        
-        if "users" in col_list:
-            logger.info(f"✅ Collection 'users' exists.")
-        else:
-            logger.info(f"ℹ️ Collection 'users' will be created on first use.")
-        
-        return client, db, chat_sessions_collection, users_collection
-
-    except OperationFailure as e:
-        if "not authorized" in str(e):
-            logger.warning(f"⚠️ Not authorized to list collections. Collections will be created on first use.")
-            return client, db, chat_sessions_collection, users_collection
-        else:
-            logger.error(f"❌ MongoDB operation failed: {e}")
-            raise
+        mongo_client = get_mongo_client()
+        print("✅ MongoDB connection established successfully!")
+        mongo_client.close()  # Close to avoid keeping connection open
     except Exception as e:
-        logger.error(f"❌ Error ensuring MongoDB collections: {e}")
-        raise
-
-# Example of use with Context Manager
-def with_mongo_client():
-    """
-    Context manager for MongoDB client to ensure proper closure.
-    """
-    client = None
-    try:
-        client = get_mongo_client()
-        yield client
-    finally:
-        if client:
-            client.close()
-            logger.info("✅ MongoDB client closed.")
+        print(f"❌ MongoDB connection failed: {e}")
+    print("=========================================================\n")
 
 # =========================
 # MinIO config
