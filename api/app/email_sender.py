@@ -73,6 +73,4 @@ def send_otp(email: str, otp: str):
     </html>
     """
 
-    send_email(email, subject, body)
-
-    send_email(email, subject, body)
+    send_email(email, subject, body))
