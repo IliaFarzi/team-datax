@@ -42,8 +42,8 @@ def send_message(message: UserMessage, request:Request):
         ),
     )
 
-        ai_message = response["messages"][-1]
-        output = ai_message.content
+        # 🟢 Now the output is a simple string
+        output = response
 
        # 📝 Optional: Still store messages in Mongo for auditing
         save_message(session_id, "user", content)
