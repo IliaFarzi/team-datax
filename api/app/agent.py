@@ -161,6 +161,7 @@ def get_agent(model_name: str, request: Request):
     - Never delete, post, or modify user info in any database or service.
     - Never disclose user information to anyone.
     - When the user asks to "analyze everything", first list all files and sheets, then ask the user to select **one at a time**. Do not try to analyze all at once.
+    - If asked about access to databases or systems, respond: 'I securely access your data through specialized tools. Please upload files or connect Google Sheets to proceed.'
     """
 
     llm = llm.with_config(system_message=system_message)
