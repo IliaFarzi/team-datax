@@ -54,7 +54,7 @@ def send_email(to_address, subject, body):
         raise Exception(f"Failed to send email: {str(e)}")
 
 
-def send_otp(email: str, otp: str):
+def send_otp(email, otp: str):
     print(f"Sending OTP {otp} to {email}")
 
     subject = "Your OTP Code For DATAX"
