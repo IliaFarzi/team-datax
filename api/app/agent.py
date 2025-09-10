@@ -173,4 +173,4 @@ def get_agent(model_name: str, request: Request):
                             version="v2",
                             name="DATAX-Agent")
     
-    return agent | StrOutputParser()
+    return agent 

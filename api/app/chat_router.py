@@ -33,7 +33,7 @@ def send_message(message: UserMessage, request:Request):
     try:
         # ✅ Each session_id creates a thread_id for independent memory
         response = agent.invoke(
-        content, # 🔹 User text only
+        {"messages": [{"role": "user", "content": content}]},
         config=RunnableConfig(
             configurable={
                 "thread_id": session_id,
@@ -42,8 +42,8 @@ def send_message(message: UserMessage, request:Request):
         ),
     )
 
-        # 🟢 Now the output is a simple string
-        output = response
+        ai_message = response["messages"][-1]
+        output = ai_message.content
 
        # 📝 Optional: Still store messages in Mongo for auditing
         save_message(session_id, "user", content)
