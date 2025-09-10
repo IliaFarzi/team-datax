@@ -150,10 +150,8 @@ async def signup(payload: SignupIn):
 
 
     verification_code = ''.join(secrets.choice('0123456789') for _ in range(6))  # 6-digit OTP
-    try:
-       send_otp(payload.email, verification_code)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to send OTP: {str(e)}")
+    send_otp(payload.email, verification_code)
+
 
     user_doc = {
         "full_name": payload.full_name,
