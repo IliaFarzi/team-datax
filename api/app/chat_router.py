@@ -33,7 +33,7 @@ def send_message(message: UserMessage, request:Request):
     try:
         # ✅ Each session_id creates a thread_id for independent memory
         response = agent.invoke(
-        {"messages": [{"role": "user", "content": content}]},
+        content, # 🔹 User text only
         config=RunnableConfig(
             configurable={
                 "thread_id": session_id,
