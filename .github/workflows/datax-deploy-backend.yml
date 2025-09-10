@@ -89,15 +89,14 @@ jobs:
             echo "GOOGLE_AUTH_PROVIDER_X509_CERT_URL=${{secrets.GOOGLE_AUTH_PROVIDER_X509_CERT_URL}}" >> .env.datax
             echo "GOOGLE_PROJECT_ID=${{secrets.GOOGLE_PROJECT_ID}}" >> .env.datax
 
-            # New Mail Config
-            echo "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}" >> .env.datax
+            # Mail Config
+            echo "MAIL_USER=${{ secrets.MAIL_USER }}" >> .env.datax
             echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> .env.datax
-            echo "MAIL_FROM=${{ secrets.MAIL_FROM }}" >> .env.datax
             echo "MAIL_PORT=${{ secrets.MAIL_PORT }}" >> .env.datax
-            echo "MAIL_SERVER=${{ secrets.MAIL_SERVER }}" >> .env.datax
+            echo "MAIL_HOST=${{ secrets.MAIL_HOST }}" >> .env.datax
             echo "MAIL_FROM_NAME=${{ secrets.MAIL_FROM_NAME }}" >> .env.datax
-            echo "MAIL_STARTTLS=${{ secrets.MAIL_STARTTLS }}" >> .env.datax
-            echo "MAIL_SSL_TLS=${{ secrets.MAIL_SSL_TLS }}" >> .env.datax
+            echo "MAIL_FROM_ADDRESS=${{ secrets.MAIL_FROM_ADDRESS }}" >> .env.datax
+
             echo "VPS_URL=${{ secrets.VPS_URL }}" >> .env.datax
             
             # add qdrant url
