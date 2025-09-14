@@ -64,9 +64,6 @@ def send_message(message: UserMessage, request:Request):
         raise HTTPException(status_code=401, detail="User not authenticated")
 
     user_id = document["user_id"]
-
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User not authenticated")
     
     # Continue the usual process
     agent = session["agent"]
