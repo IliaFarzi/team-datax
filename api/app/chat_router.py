@@ -60,10 +60,10 @@ def send_message(message: UserMessage, request:Request):
         raise HTTPException(status_code=403, detail="Invalid or expired session_id.")
     
     document = chat_sessions_collection.find_one({"session_id": session_id})
-    if not document or "user_id" not in document:
+    user_id = document["_id"]
+    if not user_id:
         raise HTTPException(status_code=401, detail="User not authenticated")
 
-    user_id = document["user_id"]
     
     # Continue the usual process
     agent = session["agent"]
