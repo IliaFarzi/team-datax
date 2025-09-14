@@ -92,11 +92,12 @@ def send_message(message: UserMessage, request:Request):
             {"_id": session["user_id"]},
             {
                 "$inc": {
-                    "stats.total_messages": 1,
-                    "stats.total_tokens": total_tokens,
-                },
-                "$set": {"stats.last_message_at": datetime.utcnow()},
-            },
+            "stats.total_messages": 1,
+            "stats.total_input_tokens": input_tokens,
+            "stats.total_output_tokens": output_tokens,
+            "stats.total_tokens": total_tokens},
+
+            "$set": {"stats.last_message_at": datetime.utcnow()},},
             upsert=True,
         )
 
