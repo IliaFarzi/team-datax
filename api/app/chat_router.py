@@ -1,8 +1,10 @@
 #api/app/chat_router.py
 from fastapi import APIRouter, HTTPException, Request
 
+import datetime
 import traceback
 
+from langchain_core.callbacks import UsageMetadataCallbackHandler
 from langchain_core.runnables import RunnableConfig
 
 from api.app.models import UserMessage
@@ -31,21 +33,43 @@ def send_message(message: UserMessage, request:Request):
     agent = session["agent"]
 
     try:
-        # ✅ Each session_id creates a thread_id for independent memory
+        # ✅ Callback for calculating consumption
+        callback = UsageMetadataCallbackHandler()
+
         response = agent.invoke(
-        {"messages": [{"role": "user", "content": content}]},
-        config=RunnableConfig(
-            configurable={
-                "thread_id": session_id,
-                "recursion_limit": 5  # ✅ Put it here, not inside create_react_agent
-            }
-        ),
-    )
+            {"messages": [{"role": "user", "content": content}]},
+            config=RunnableConfig(
+                configurable={
+                    "thread_id": session_id,
+                    "recursion_limit": 5,
+                },
+                callbacks=[callback], # 🔹 Added
+            ),
+        )
 
-        ai_message = response["messages"][-1]
-        output = ai_message.content
+        output = response["messages"][-1].content
 
-       # 📝 Optional: Still store messages in Mongo for auditing
+        # ✅ Mining and consumption of tokens
+        usage = callback.usage_metadata
+        total_tokens = 0
+        total_messages = 1  # One message at a time
+
+        for data in usage.items():
+            total_tokens += data.get("total_tokens", 0)
+
+        # ✅ Save to database
+        users_collection.update_one(
+            {"_id": session["user_id"]},
+            {
+                "$inc": {
+                    "stats.total_messages": total_messages,
+                    "stats.total_tokens": total_tokens,
+                },
+                "$set": {"stats.last_message_at": datetime.utcnow()},
+            },
+            upsert=True,
+        )
+
         save_message(session_id, "user", content)
         save_message(session_id, "assistant", output)
 
@@ -53,8 +77,10 @@ def send_message(message: UserMessage, request:Request):
         traceback.print_exc()
         output = f"❗ Error processing response: {str(e)}"
 
-    return {"response": output}
-
+    return {
+        "response": output,
+        "usage": {"messages": total_messages, "tokens": total_tokens}
+    }
 
 def save_message(session_id: str, role: str, content: str):
     """📌 Optional: Only for archiving in Mongo""" 
