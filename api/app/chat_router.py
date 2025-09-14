@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, Request
 
 import datetime
 import traceback
+from bson import ObjectId
 
 from langchain_core.callbacks import UsageMetadataCallbackHandler
 from langchain_core.runnables import RunnableConfig
@@ -45,6 +46,7 @@ def get_chat_history(session_id: str):
 
 @chat_router.post("/send_message")
 def send_message(message: UserMessage, request:Request):
+    
     session_id = message.session_id
     content = message.content
 
@@ -56,6 +58,11 @@ def send_message(message: UserMessage, request:Request):
     session = sessions.get(session_id)
     if not session:
         raise HTTPException(status_code=403, detail="Invalid or expired session_id.")
+    
+    # ✅ Extract user_id from request.session
+    user_id = request.session.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
     
     # Continue the usual process
     agent = session["agent"]
@@ -89,7 +96,7 @@ def send_message(message: UserMessage, request:Request):
 
         # ✅ Save stats in MongoDB
         users_collection.update_one(
-            {"_id": session["user_id"]},
+            {"_id": ObjectId(user_id)},
             {
                 "$inc": {
             "stats.total_messages": 1,
