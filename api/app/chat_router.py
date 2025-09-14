@@ -15,6 +15,34 @@ client, db, chat_sessions_collection, users_collection = ensure_mongo_collection
 
 chat_router = APIRouter(prefix="/Chat", tags=['Chat with DATAX'])
 
+
+def save_message(session_id: str, role: str, content: str):
+    """📌 Optional: Only for archiving in Mongo""" 
+    try:
+        chat_sessions_collection.update_one(
+            {"session_id": session_id},
+            {
+                "$push": {"messages": {"role": role, "content": content}},
+                "$setOnInsert": {"session_id": session_id},
+            },
+            upsert=True,
+        )
+    except Exception as e:
+        print(f"❗ Error saving message to MongoDB for session {session_id}: {e}")
+
+@chat_router.get("/get_history/{session_id}")
+def get_chat_history(session_id: str):
+    """📌 Since checkpointer keeps history, this is only for auditing from Mongo"""
+    try:
+        document = chat_sessions_collection.find_one({"session_id": session_id})
+        if document and "messages" in document:
+            return document["messages"]
+        return []
+    except Exception as e:
+        print(f"❗ Error retrieving history from MongoDB for session {session_id}: {e}")
+        return []
+    
+
 @chat_router.post("/send_message")
 def send_message(message: UserMessage, request:Request):
     session_id = message.session_id
@@ -49,20 +77,22 @@ def send_message(message: UserMessage, request:Request):
 
         output = response["messages"][-1].content
 
-        # ✅ Mining and consumption of tokens
+        # ✅ Token usage
+        input_tokens = output_tokens = total_tokens = 0
         usage = callback.usage_metadata
-        total_tokens = 0
-        total_messages = 1  # One message at a time
 
-        for data in usage.items():
-            total_tokens += data.get("total_tokens", 0)
+        if isinstance(usage, dict) and len(usage) > 0:
+            stats = next(iter(usage.values()))
+            input_tokens = stats.get("input_tokens", 0)
+            output_tokens = stats.get("output_tokens", 0)
+            total_tokens = stats.get("total_tokens", 0)
 
-        # ✅ Save to database
+        # ✅ Save stats in MongoDB
         users_collection.update_one(
             {"_id": session["user_id"]},
             {
                 "$inc": {
-                    "stats.total_messages": total_messages,
+                    "stats.total_messages": 1,
                     "stats.total_tokens": total_tokens,
                 },
                 "$set": {"stats.last_message_at": datetime.utcnow()},
@@ -70,40 +100,21 @@ def send_message(message: UserMessage, request:Request):
             upsert=True,
         )
 
+        # Save chat history
         save_message(session_id, "user", content)
         save_message(session_id, "assistant", output)
 
     except Exception as e:
         traceback.print_exc()
         output = f"❗ Error processing response: {str(e)}"
+        input_tokens = output_tokens = total_tokens = 0
 
     return {
         "response": output,
-        "usage": {"messages": total_messages, "tokens": total_tokens}
+        "usage": {
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": total_tokens,
+            "messages": 1
+        }
     }
-
-def save_message(session_id: str, role: str, content: str):
-    """📌 Optional: Only for archiving in Mongo""" 
-    try:
-        chat_sessions_collection.update_one(
-            {"session_id": session_id},
-            {
-                "$push": {"messages": {"role": role, "content": content}},
-                "$setOnInsert": {"session_id": session_id},
-            },
-            upsert=True,
-        )
-    except Exception as e:
-        print(f"❗ Error saving message to MongoDB for session {session_id}: {e}")
-
-@chat_router.get("/get_history/{session_id}")
-def get_chat_history(session_id: str):
-    """📌 Since checkpointer keeps history, this is only for auditing from Mongo"""
-    try:
-        document = chat_sessions_collection.find_one({"session_id": session_id})
-        if document and "messages" in document:
-            return document["messages"]
-        return []
-    except Exception as e:
-        print(f"❗ Error retrieving history from MongoDB for session {session_id}: {e}")
-        return []
