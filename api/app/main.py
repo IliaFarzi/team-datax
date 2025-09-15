@@ -14,7 +14,7 @@ from api.app.download_router import file_router
 
 load_dotenv(".env")
 
-SECRET_KEY = os.getenv("SESSION_SECRET_KEY")
+AUTH_SESSION_SECRET = os.getenv("AUTH_SESSION_SECRET")
 VPS_HOST=os.getenv('VPS_HOST')
 VPS_URL=os.getenv('VPS_URL')
 FRONTEND_URL = os.getenv("FRONTEND_URL")  
@@ -25,7 +25,7 @@ app = FastAPI(title="DATAX", description="API for chat, file upload, Google Shee
 # ✅ Session middleware 
 app.add_middleware(
     SessionMiddleware,
-    secret_key=SECRET_KEY,
+    secret_key=AUTH_SESSION_SECRET,
     same_site="none",  
     https_only=False,
     domain="none"

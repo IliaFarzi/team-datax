@@ -18,17 +18,12 @@ load_dotenv(".env")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Get MongoDB settings from environment variables
-DATAX_MONGO_URI = os.getenv("DATAX_MONGO_URI")
-DATAX_MONGO_DB_NAME = os.getenv("DATAX_MONGO_DB_NAME")
-DATAX_MONGO_COLLECTION_NAME = os.getenv("DATAX_MONGO_COLLECTION_NAME")
-
 # =========================
 # MongoDB config
 # =========================
-DATAX_MONGO_URI = os.getenv("DATAX_MONGO_URI")
-DATAX_MONGO_DB_NAME = os.getenv("DATAX_MONGO_DB_NAME")
-DATAX_MONGO_COLLECTION_NAME = os.getenv("DATAX_MONGO_COLLECTION_NAME")
+DATAX_MONGO_URI = os.getenv("DB_MONGO_URI")
+DATAX_MONGO_DB_NAME = os.getenv("DB_MONGO_NAME")
+DATAX_MONGO_COLLECTION_NAME = os.getenv("DB_MONGO_COLLECTION_CHAT_SESSIONS")
 
 # Check for MongoDB environment variables
 if not all([DATAX_MONGO_URI, DATAX_MONGO_DB_NAME, DATAX_MONGO_COLLECTION_NAME]):
@@ -86,12 +81,12 @@ if DATAX_MONGO_URI and DATAX_MONGO_DB_NAME and DATAX_MONGO_COLLECTION_NAME:
 # =========================
 # MinIO config
 # =========================
-DATAX_MINIO_ENDPOINT = os.getenv("DATAX_MINIO_ENDPOINT")
-DATAX_MINIO_ACCESS_KEY = os.getenv("DATAX_MINIO_ACCESS_KEY")
-DATAX_MINIO_SECRET_KEY = os.getenv("DATAX_MINIO_SECRET_KEY")
-DATAX_MINIO_SECURE = os.getenv("DATAX_MINIO_SECURE", "False").lower() == "true"
-DATAX_MINIO_BUCKET_SHEETS = os.getenv("DATAX_MINIO_BUCKET_SHEETS")
-DATAX_MINIO_BUCKET_UPLOADS = os.getenv("DATAX_MINIO_BUCKET_UPLOADS")
+STORAGE_MINIO_ENDPOINT = os.getenv("STORAGE_MINIO_ENDPOINT")
+STORAGE_MINIO_ACCESS_KEY = os.getenv("STORAGE_MINIO_ACCESS_KEY")
+STORAGE_MINIO_SECRET_KEY = os.getenv("STORAGE_MINIO_SECRET_KEY")
+STORAGE_MINIO_SECURE = os.getenv("STORAGE_MINIO_SECURE", "False").lower() == "true"
+STORAGE_MINIO_BUCKET_SHEETS = os.getenv("STORAGE_MINIO_BUCKET_SHEETS")
+STORAGE_MINIO_BUCKET_UPLOADS = os.getenv("STORAGE_MINIO_BUCKET_UPLOADS")
 
 # =========================
 # MinIO utilities
@@ -99,10 +94,10 @@ DATAX_MINIO_BUCKET_UPLOADS = os.getenv("DATAX_MINIO_BUCKET_UPLOADS")
 def get_minio_client() -> Minio:
     """Create and return a MinIO client."""
     client = Minio(
-        endpoint=DATAX_MINIO_ENDPOINT,
-        access_key=DATAX_MINIO_ACCESS_KEY,
-        secret_key=DATAX_MINIO_SECRET_KEY,
-        secure=DATAX_MINIO_SECURE,
+        endpoint=STORAGE_MINIO_ENDPOINT,
+        access_key=STORAGE_MINIO_ACCESS_KEY,
+        secret_key=STORAGE_MINIO_SECRET_KEY,
+        secure=STORAGE_MINIO_SECURE,
     )
     return client
 
@@ -122,25 +117,25 @@ def ensure_bucket(minio_client: Minio, bucket: str):
 
 def minio_file_url(bucket: str, object_name: str) -> str:
     """Return a public-style MinIO URL (for dev/testing)."""
-    scheme = "https" if DATAX_MINIO_SECURE else "http"
-    return f"{scheme}://{DATAX_MINIO_ENDPOINT}/{bucket}/{object_name}"
+    scheme = "https" if STORAGE_MINIO_SECURE else "http"
+    return f"{scheme}://{STORAGE_MINIO_ENDPOINT}/{bucket}/{object_name}"
 
 # =========================
 # Init check (runs once at import)
 # =========================
-if DATAX_MINIO_ENDPOINT and DATAX_MINIO_ACCESS_KEY and DATAX_MINIO_SECRET_KEY and DATAX_MINIO_BUCKET_SHEETS and DATAX_MINIO_BUCKET_UPLOADS:
+if STORAGE_MINIO_ENDPOINT and STORAGE_MINIO_ACCESS_KEY and STORAGE_MINIO_SECRET_KEY and STORAGE_MINIO_BUCKET_SHEETS and STORAGE_MINIO_BUCKET_UPLOADS:
     client = get_minio_client()
     print("\n================ MinIO Connection Debug ================")
-    print(f"📌 DATAX_MINIO_ENDPOINT: {DATAX_MINIO_ENDPOINT}")
-    print(f"📌 DATAX_MINIO_ACCESS_KEY: {DATAX_MINIO_ACCESS_KEY}")
-    print(f"📌 DATAX_MINIO_SECRET_KEY: {DATAX_MINIO_SECRET_KEY[:4]}***")
-    print(f"📌 DATAX_MINIO_BUCKET_SHEETS: {DATAX_MINIO_BUCKET_SHEETS}")
-    print(f"📌 DATAX_MINIO_BUCKET_UPLOADS: {DATAX_MINIO_BUCKET_UPLOADS}")
-    print(f"📌 DATAX_MINIO_SECURE: {DATAX_MINIO_SECURE}")
+    print(f"📌 STORAGE_MINIO_ENDPOINT: {STORAGE_MINIO_ENDPOINT}")
+    print(f"📌 STORAGE_MINIO_ACCESS_KEY: {STORAGE_MINIO_ACCESS_KEY}")
+    print(f"📌 STORAGE_MINIO_SECRET_KEY: {STORAGE_MINIO_SECRET_KEY[:4]}***")
+    print(f"📌 STORAGE_MINIO_BUCKET_SHEETS: {STORAGE_MINIO_BUCKET_SHEETS}")
+    print(f"📌 STORAGE_MINIO_BUCKET_UPLOADS: {STORAGE_MINIO_BUCKET_UPLOADS}")
+    print(f"📌 STORAGE_MINIO_SECURE: {STORAGE_MINIO_SECURE}")
     print("=========================================================\n")
 
     # Ensure default buckets exist
-    ensure_bucket(client, DATAX_MINIO_BUCKET_SHEETS)
-    ensure_bucket(client, DATAX_MINIO_BUCKET_UPLOADS)
+    ensure_bucket(client, STORAGE_MINIO_BUCKET_SHEETS)
+    ensure_bucket(client, STORAGE_MINIO_BUCKET_UPLOADS)
 else:
     print("⚠️ MinIO environment variables are missing. Skipping MinIO init.")

@@ -8,7 +8,7 @@ import tempfile
 from datetime import datetime, timezone
 import logging
 
-from api.app.database import ensure_mongo_collections, get_minio_client, DATAX_MINIO_ENDPOINT, DATAX_MINIO_BUCKET_UPLOADS
+from api.app.database import ensure_mongo_collections, get_minio_client, STORAGE_MINIO_ENDPOINT, STORAGE_MINIO_BUCKET_UPLOADS
 
 load_dotenv(".env")
 
@@ -38,8 +38,8 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         # Upload to MinIO
         object_name = f"{google_id}/{file.filename}"
         minio_client = get_minio_client()
-        minio_client.fput_object(DATAX_MINIO_BUCKET_UPLOADS, object_name, tmp_path)
-        logger.info(f"✅ File uploaded to MinIO bucket={DATAX_MINIO_BUCKET_UPLOADS}, object={object_name}")
+        minio_client.fput_object(STORAGE_MINIO_BUCKET_UPLOADS, object_name, tmp_path)
+        logger.info(f"✅ File uploaded to MinIO bucket={STORAGE_MINIO_BUCKET_UPLOADS}, object={object_name}")
 
         # Try read CSV/Excel for metadata (optional)
         rows, columns, headers = None, None, []
@@ -58,14 +58,14 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         os.remove(tmp_path)
 
         # File URL
-        file_url = f"http://{DATAX_MINIO_ENDPOINT}/{DATAX_MINIO_BUCKET_UPLOADS}/{object_name}"
+        file_url = f"http://{STORAGE_MINIO_ENDPOINT}/{STORAGE_MINIO_BUCKET_UPLOADS}/{object_name}"
 
         # Store metadata in MongoDB
         metadata = {
             "owner_id": google_id,
             "filename": file.filename,
             "object_name": object_name,  # user_id/filename
-            "bucket": DATAX_MINIO_BUCKET_UPLOADS,
+            "bucket": STORAGE_MINIO_BUCKET_UPLOADS,
             "url": file_url,
             "rows": rows,
             "columns": columns,
@@ -93,7 +93,7 @@ def analyze_uploaded_file(filename: str, user_id: str, operation: str, column: s
 
     try:
         # Download file from MinIO
-        minio_client.fget_object(DATAX_MINIO_BUCKET_UPLOADS, object_name, tmp_path)
+        minio_client.fget_object(STORAGE_MINIO_BUCKET_UPLOADS, object_name, tmp_path)
 
         # Load into DataFrame
         if filename.endswith(".csv"):
@@ -139,4 +139,4 @@ def list_uploaded_files(user_id: str):
     return files
 
 
-########
+#########

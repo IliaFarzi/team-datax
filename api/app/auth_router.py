@@ -37,26 +37,26 @@ client, db, chat_sessions_collection, users_collection = ensure_mongo_collection
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "0"
 
 # Google OAuth settings from environment variables
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-GOOGLE_TOKEN_URI = os.getenv("GOOGLE_TOKEN_URI")
-GOOGLE_AUTH_URI = os.getenv("GOOGLE_AUTH_URI")
-GOOGLE_AUTH_PROVIDER_X509_CERT_URL = os.getenv("GOOGLE_AUTH_PROVIDER_X509_CERT_URL")
-GOOGLE_PROJECT_ID = os.getenv('GOOGLE_PROJECT_ID')
+AUTH_GOOGLE_CLIENT_ID= os.getenv("AUTH_GOOGLE_CLIENT_ID")
+AUTH_GOOGLE_CLIENT_SECRET = os.getenv("AUTH_GOOGLE_CLIENT_SECRET")
+AUTH_GOOGLE_URI_TOKEN = os.getenv("AUTH_GOOGLE_URI_TOKEN")
+AUTH_GOOGLE_URI_AUTH = os.getenv("AUTH_GOOGLE_URI_AUTH")
+AUTH_GOOGLE_URI_CERTS = os.getenv("AUTH_GOOGLE_URI_CERTS")
+AUTH_GOOGLE_PROJECT_ID = os.getenv('AUTH_GOOGLE_PROJECT_ID')
 
 # Check for the existence of variables
-if not all([GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_TOKEN_URI, GOOGLE_AUTH_URI, GOOGLE_AUTH_PROVIDER_X509_CERT_URL,GOOGLE_PROJECT_ID]):
+if not all([AUTH_GOOGLE_CLIENT_ID, AUTH_GOOGLE_CLIENT_SECRET, AUTH_GOOGLE_URI_TOKEN, AUTH_GOOGLE_URI_AUTH, AUTH_GOOGLE_URI_CERTS,AUTH_GOOGLE_PROJECT_ID]):
     raise ValueError("Missing Google OAuth environment variables")
 
 # Client settings for Flow
 client_config = {
     "web": {
-        "client_id": GOOGLE_CLIENT_ID,
-        "project_id": GOOGLE_PROJECT_ID,
-        "client_secret": GOOGLE_CLIENT_SECRET,
-        "auth_uri": GOOGLE_AUTH_URI,
-        "token_uri": GOOGLE_TOKEN_URI,
-        "auth_provider_x509_cert_url": GOOGLE_AUTH_PROVIDER_X509_CERT_URL
+        "client_id": AUTH_GOOGLE_CLIENT_ID,
+        "project_id": AUTH_GOOGLE_PROJECT_ID,
+        "client_secret": AUTH_GOOGLE_CLIENT_SECRET,
+        "auth_uri": AUTH_GOOGLE_URI_AUTH,
+        "token_uri": AUTH_GOOGLE_URI_TOKEN,
+        "auth_provider_x509_cert_url": AUTH_GOOGLE_URI_CERTS
     }
 }
 
@@ -65,7 +65,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL")
 FRONTEND_SHEETS_CALLBACK = f"{FRONTEND_URL}/google-sheets/callback"
 
 # JWT
-SECRET_KEY = os.getenv("JWT_SECRET", "dev_secret")
+AUTH_JWT_SECRET = os.getenv("AUTH_JWT_SECRET")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
@@ -93,12 +93,12 @@ def create_access_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(to_encode, AUTH_JWT_SECRET, algorithm=ALGORITHM)
 
 
 def decode_token(token: str):
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, AUTH_JWT_SECRET, algorithms=[ALGORITHM])
         return payload.get("sub")
     except JWTError:
         return None

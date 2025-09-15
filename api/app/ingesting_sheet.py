@@ -13,7 +13,7 @@ from api.app.database import ensure_mongo_collections, get_minio_client, ensure_
 
 logger = logging.getLogger(__name__)
 
-DATAX_MINIO_BUCKET_SHEETS = os.getenv("DATAX_MINIO_BUCKET_SHEETS")
+STORAGE_MINIO_BUCKET_SHEET= os.getenv("STORAGE_MINIO_BUCKET_SHEET")
 
 client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
 
@@ -32,7 +32,7 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
     Storing CSV in MinIO, storing metadata in Mongo, and inserting vectors in Qdrant
     """
     minio_client = get_minio_client()
-    ensure_bucket(minio_client, DATAX_MINIO_BUCKET_SHEETS)
+    ensure_bucket(minio_client,STORAGE_MINIO_BUCKET_SHEET)
 
     # Save CSV temporarily
     with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
@@ -41,8 +41,8 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
 
     object_name = f"{user_id}/{sheet_id}.csv"
     try:
-        minio_client.fput_object(DATAX_MINIO_BUCKET_SHEETS, object_name, csv_path)
-        logger.info(f"✅ Uploaded {object_name} to MinIO bucket {DATAX_MINIO_BUCKET_SHEETS}")
+        minio_client.fput_object(STORAGE_MINIO_BUCKET_SHEET, object_name, csv_path)
+        logger.info(f"✅ Uploaded {object_name} to MinIO bucket {STORAGE_MINIO_BUCKET_SHEET}")
     except S3Error as e:
         os.remove(csv_path)
         logger.error(f"❌ MinIO upload failed: {e}")
@@ -53,7 +53,7 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
         except Exception:
             pass
 
-    file_url = minio_file_url(DATAX_MINIO_BUCKET_SHEETS, object_name)
+    file_url = minio_file_url(STORAGE_MINIO_BUCKET_SHEET, object_name)
 
     # Build text chunks for RAG
     text_data = df.to_string(index=False)
@@ -77,7 +77,7 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
         "owner_id": user_id,
         "sheet_id": sheet_id,
         "sheet_name": sheet_name,
-        "bucket": DATAX_MINIO_BUCKET_SHEETS,
+        "bucket": STORAGE_MINIO_BUCKET_SHEET,
         "object_name": object_name,
         "filename": f"{sheet_id}.csv",
         "file_url": file_url,
