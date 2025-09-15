@@ -115,7 +115,7 @@ jobs:
               echo "VPS_USERNAME=${{ secrets.VPS_USERNAME }}" >> .env.datax
               echo "VPS_PRIVATE_KEY=${{ secrets.VPS_PRIVATE_KEY }}" >> .env.datax
               echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
-              echo ".DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
+              echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
 
             else
               echo "AUTH_JWT_SECRET=${{ secrets.DEV_AUTH_JWT_SECRET }}" > .env.datax
@@ -162,7 +162,7 @@ jobs:
               echo "VPS_USERNAME=${{ secrets.VPS_USERNAME }}" >> .env.datax
               echo "VPS_PRIVATE_KEY=${{ secrets.VPS_PRIVATE_KEY }}" >> .env.datax
               echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
-              echo ".DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
+              echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
               
             fi
 
