@@ -112,8 +112,8 @@ def make_wrapped_tools(request: Request):
 load_dotenv(".env")
 
 # Access API keys
-openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
-openrouter_base_url = os.getenv("OPENROUTER_API_BASE")
+LLM_OPENROUTER_API_KEY = os.getenv("LLM_OPENROUTER_API_KEY")
+LLM_OPENROUTER_API_BASE = os.getenv("LLM_OPENROUTER_API_BASE")
 
 def pre_model_hook(state):
     """Before calling LLM â†’ keep only the last 5 messages"""
@@ -125,8 +125,8 @@ def pre_model_hook(state):
 def get_agent(model_name: str, request: Request):
     llm = ChatOpenAI(
         model=model_name,
-        api_key=openrouter_api_key,
-        base_url=openrouter_base_url,
+        api_key=LLM_OPENROUTER_API_KEY,
+        base_url=LLM_OPENROUTER_API_BASE,
         max_tokens= 4096,
         temperature=0.7,
         top_p= 0.9,
@@ -219,26 +219,26 @@ client, db, chat_sessions_collection, users_collection = ensure_mongo_collection
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "0"
 
 # Google OAuth settings from environment variables
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-GOOGLE_TOKEN_URI = os.getenv("GOOGLE_TOKEN_URI")
-GOOGLE_AUTH_URI = os.getenv("GOOGLE_AUTH_URI")
-GOOGLE_AUTH_PROVIDER_X509_CERT_URL = os.getenv("GOOGLE_AUTH_PROVIDER_X509_CERT_URL")
-GOOGLE_PROJECT_ID = os.getenv('GOOGLE_PROJECT_ID')
+AUTH_GOOGLE_CLIENT_ID= os.getenv("AUTH_GOOGLE_CLIENT_ID")
+AUTH_GOOGLE_CLIENT_SECRET = os.getenv("AUTH_GOOGLE_CLIENT_SECRET")
+AUTH_GOOGLE_URI_TOKEN = os.getenv("AUTH_GOOGLE_URI_TOKEN")
+AUTH_GOOGLE_URI_AUTH = os.getenv("AUTH_GOOGLE_URI_AUTH")
+AUTH_GOOGLE_URI_CERTS = os.getenv("AUTH_GOOGLE_URI_CERTS")
+AUTH_GOOGLE_PROJECT_ID = os.getenv('AUTH_GOOGLE_PROJECT_ID')
 
 # Check for the existence of variables
-if not all([GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_TOKEN_URI, GOOGLE_AUTH_URI, GOOGLE_AUTH_PROVIDER_X509_CERT_URL,GOOGLE_PROJECT_ID]):
+if not all([AUTH_GOOGLE_CLIENT_ID, AUTH_GOOGLE_CLIENT_SECRET, AUTH_GOOGLE_URI_TOKEN, AUTH_GOOGLE_URI_AUTH, AUTH_GOOGLE_URI_CERTS,AUTH_GOOGLE_PROJECT_ID]):
     raise ValueError("Missing Google OAuth environment variables")
 
 # Client settings for Flow
 client_config = {
     "web": {
-        "client_id": GOOGLE_CLIENT_ID,
-        "project_id": GOOGLE_PROJECT_ID,
-        "client_secret": GOOGLE_CLIENT_SECRET,
-        "auth_uri": GOOGLE_AUTH_URI,
-        "token_uri": GOOGLE_TOKEN_URI,
-        "auth_provider_x509_cert_url": GOOGLE_AUTH_PROVIDER_X509_CERT_URL
+        "client_id": AUTH_GOOGLE_CLIENT_ID,
+        "project_id": AUTH_GOOGLE_PROJECT_ID,
+        "client_secret": AUTH_GOOGLE_CLIENT_SECRET,
+        "auth_uri": AUTH_GOOGLE_URI_AUTH,
+        "token_uri": AUTH_GOOGLE_URI_TOKEN,
+        "auth_provider_x509_cert_url": AUTH_GOOGLE_URI_CERTS
     }
 }
 
@@ -247,7 +247,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL")
 FRONTEND_SHEETS_CALLBACK = f"{FRONTEND_URL}/google-sheets/callback"
 
 # JWT
-SECRET_KEY = os.getenv("JWT_SECRET", "dev_secret")
+AUTH_JWT_SECRET = os.getenv("AUTH_JWT_SECRET")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
@@ -275,12 +275,12 @@ def create_access_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(to_encode, AUTH_JWT_SECRET, algorithm=ALGORITHM)
 
 
 def decode_token(token: str):
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, AUTH_JWT_SECRET, algorithms=[ALGORITHM])
         return payload.get("sub")
     except JWTError:
         return None
@@ -825,17 +825,12 @@ load_dotenv(".env")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Get MongoDB settings from environment variables
-DATAX_MONGO_URI = os.getenv("DATAX_MONGO_URI")
-DATAX_MONGO_DB_NAME = os.getenv("DATAX_MONGO_DB_NAME")
-DATAX_MONGO_COLLECTION_NAME = os.getenv("DATAX_MONGO_COLLECTION_NAME")
-
 # =========================
 # MongoDB config
 # =========================
-DATAX_MONGO_URI = os.getenv("DATAX_MONGO_URI")
-DATAX_MONGO_DB_NAME = os.getenv("DATAX_MONGO_DB_NAME")
-DATAX_MONGO_COLLECTION_NAME = os.getenv("DATAX_MONGO_COLLECTION_NAME")
+DATAX_MONGO_URI = os.getenv("DB_MONGO_URI")
+DATAX_MONGO_DB_NAME = os.getenv("DB_MONGO_NAME")
+DATAX_MONGO_COLLECTION_NAME = os.getenv("DB_MONGO_COLLECTION_CHAT_SESSIONS")
 
 # Check for MongoDB environment variables
 if not all([DATAX_MONGO_URI, DATAX_MONGO_DB_NAME, DATAX_MONGO_COLLECTION_NAME]):
@@ -893,12 +888,12 @@ if DATAX_MONGO_URI and DATAX_MONGO_DB_NAME and DATAX_MONGO_COLLECTION_NAME:
 # =========================
 # MinIO config
 # =========================
-DATAX_MINIO_ENDPOINT = os.getenv("DATAX_MINIO_ENDPOINT")
-DATAX_MINIO_ACCESS_KEY = os.getenv("DATAX_MINIO_ACCESS_KEY")
-DATAX_MINIO_SECRET_KEY = os.getenv("DATAX_MINIO_SECRET_KEY")
-DATAX_MINIO_SECURE = os.getenv("DATAX_MINIO_SECURE", "False").lower() == "true"
-DATAX_MINIO_BUCKET_SHEETS = os.getenv("DATAX_MINIO_BUCKET_SHEETS")
-DATAX_MINIO_BUCKET_UPLOADS = os.getenv("DATAX_MINIO_BUCKET_UPLOADS")
+STORAGE_MINIO_ENDPOINT = os.getenv("STORAGE_MINIO_ENDPOINT")
+STORAGE_MINIO_ACCESS_KEY = os.getenv("STORAGE_MINIO_ACCESS_KEY")
+STORAGE_MINIO_SECRET_KEY = os.getenv("STORAGE_MINIO_SECRET_KEY")
+STORAGE_MINIO_SECURE = os.getenv("STORAGE_MINIO_SECURE", "False").lower() == "true"
+STORAGE_MINIO_BUCKET_SHEETS = os.getenv("STORAGE_MINIO_BUCKET_SHEETS")
+STORAGE_MINIO_BUCKET_UPLOADS = os.getenv("STORAGE_MINIO_BUCKET_UPLOADS")
 
 # =========================
 # MinIO utilities
@@ -906,10 +901,10 @@ DATAX_MINIO_BUCKET_UPLOADS = os.getenv("DATAX_MINIO_BUCKET_UPLOADS")
 def get_minio_client() -> Minio:
     """Create and return a MinIO client."""
     client = Minio(
-        endpoint=DATAX_MINIO_ENDPOINT,
-        access_key=DATAX_MINIO_ACCESS_KEY,
-        secret_key=DATAX_MINIO_SECRET_KEY,
-        secure=DATAX_MINIO_SECURE,
+        endpoint=STORAGE_MINIO_ENDPOINT,
+        access_key=STORAGE_MINIO_ACCESS_KEY,
+        secret_key=STORAGE_MINIO_SECRET_KEY,
+        secure=STORAGE_MINIO_SECURE,
     )
     return client
 
@@ -929,26 +924,26 @@ def ensure_bucket(minio_client: Minio, bucket: str):
 
 def minio_file_url(bucket: str, object_name: str) -> str:
     """Return a public-style MinIO URL (for dev/testing)."""
-    scheme = "https" if DATAX_MINIO_SECURE else "http"
-    return f"{scheme}://{DATAX_MINIO_ENDPOINT}/{bucket}/{object_name}"
+    scheme = "https" if STORAGE_MINIO_SECURE else "http"
+    return f"{scheme}://{STORAGE_MINIO_ENDPOINT}/{bucket}/{object_name}"
 
 # =========================
 # Init check (runs once at import)
 # =========================
-if DATAX_MINIO_ENDPOINT and DATAX_MINIO_ACCESS_KEY and DATAX_MINIO_SECRET_KEY and DATAX_MINIO_BUCKET_SHEETS and DATAX_MINIO_BUCKET_UPLOADS:
+if STORAGE_MINIO_ENDPOINT and STORAGE_MINIO_ACCESS_KEY and STORAGE_MINIO_SECRET_KEY and STORAGE_MINIO_BUCKET_SHEETS and STORAGE_MINIO_BUCKET_UPLOADS:
     client = get_minio_client()
     print("\n================ MinIO Connection Debug ================")
-    print(f"ًں“Œ DATAX_MINIO_ENDPOINT: {DATAX_MINIO_ENDPOINT}")
-    print(f"ًں“Œ DATAX_MINIO_ACCESS_KEY: {DATAX_MINIO_ACCESS_KEY}")
-    print(f"ًں“Œ DATAX_MINIO_SECRET_KEY: {DATAX_MINIO_SECRET_KEY[:4]}***")
-    print(f"ًں“Œ DATAX_MINIO_BUCKET_SHEETS: {DATAX_MINIO_BUCKET_SHEETS}")
-    print(f"ًں“Œ DATAX_MINIO_BUCKET_UPLOADS: {DATAX_MINIO_BUCKET_UPLOADS}")
-    print(f"ًں“Œ DATAX_MINIO_SECURE: {DATAX_MINIO_SECURE}")
+    print(f"ًں“Œ STORAGE_MINIO_ENDPOINT: {STORAGE_MINIO_ENDPOINT}")
+    print(f"ًں“Œ STORAGE_MINIO_ACCESS_KEY: {STORAGE_MINIO_ACCESS_KEY}")
+    print(f"ًں“Œ STORAGE_MINIO_SECRET_KEY: {STORAGE_MINIO_SECRET_KEY[:4]}***")
+    print(f"ًں“Œ STORAGE_MINIO_BUCKET_SHEETS: {STORAGE_MINIO_BUCKET_SHEETS}")
+    print(f"ًں“Œ STORAGE_MINIO_BUCKET_UPLOADS: {STORAGE_MINIO_BUCKET_UPLOADS}")
+    print(f"ًں“Œ STORAGE_MINIO_SECURE: {STORAGE_MINIO_SECURE}")
     print("=========================================================\n")
 
     # Ensure default buckets exist
-    ensure_bucket(client, DATAX_MINIO_BUCKET_SHEETS)
-    ensure_bucket(client, DATAX_MINIO_BUCKET_UPLOADS)
+    ensure_bucket(client, STORAGE_MINIO_BUCKET_SHEETS)
+    ensure_bucket(client, STORAGE_MINIO_BUCKET_UPLOADS)
 else:
     print("âڑ ï¸ڈ MinIO environment variables are missing. Skipping MinIO init.")
 
@@ -1020,30 +1015,30 @@ from ssl import create_default_context
 
 load_dotenv = (".env")
 
-MAIL_HOST = os.getenv("MAIL_HOST")
-MAIL_PORT = os.getenv("MAIL_PORT")
-MAIL_USER = os.getenv("MAIL_USER")
-MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
+MAIL_SMTP_HOST = os.getenv("MAIL_SMTP_HOST")
+MAIL_SMTP_PORT = os.getenv("MAIL_SMTP_PORT")
+MAIL_SMTP_USER = os.getenv("MAIL_SMTP_USER")
+MAIL_SMTP_PASSWORD = os.getenv("MAIL_SMTP_PASSWORD")
 MAIL_FROM_NAME = os.getenv("MAIL_FROM_NAME")
 MAIL_FROM_ADDRESS = os.getenv("MAIL_FROM_ADDRESS")
 FRONTEND_URL = os.getenv('FRONTEND_URL')
 
-if not all([MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASSWORD, MAIL_FROM_NAME, MAIL_FROM_ADDRESS]):
+if not all([MAIL_SMTP_HOST, MAIL_SMTP_PORT, MAIL_SMTP_USER, MAIL_SMTP_PASSWORD, MAIL_FROM_NAME, MAIL_FROM_ADDRESS]):
     raise ValueError("Missing email configuration environment variables")
 
 
 def send_email(to_address, subject, body):
     try:
         # Enforce TLS
-        print(f"Attempting to connect to {MAIL_HOST}:{MAIL_PORT}")
+        print(f"Attempting to connect to {MAIL_SMTP_HOST}:{MAIL_SMTP_PORT}")
         context = create_default_context()
 
         # Connect to the server
         with smtplib.SMTP_SSL(
-             MAIL_HOST, MAIL_PORT, context=context
+             MAIL_SMTP_HOST, MAIL_SMTP_PORT, context=context
         ) as server:
             print("Connected to SMTP server")
-            server.login(MAIL_USER, MAIL_PASSWORD)
+            server.login(MAIL_SMTP_USER, MAIL_SMTP_PASSWORD)
             print("Logged in successfully")
 
             # Prepare the email
@@ -1058,9 +1053,9 @@ def send_email(to_address, subject, body):
             server.sendmail(MAIL_FROM_ADDRESS, to_address, msg.as_string())
             print(f"Email sent to {to_address} successfully!")
     except smtplib.SMTPConnectError as e:
-        raise Exception(f"SMTP connection failed: {str(e)} (Check MAIL_HOST and DNS)")
+        raise Exception(f"SMTP connection failed: {str(e)} (Check MAIL_SMTP_HOST and DNS)")
     except smtplib.SMTPAuthenticationError as e:
-        raise Exception(f"SMTP authentication failed: {str(e)} (Check MAIL_USER and MAIL_PASSWORD)")
+        raise Exception(f"SMTP authentication failed: {str(e)} (Check MAIL_SMTP_USER and MAIL_SMTP_PASSWORD)")
     except Exception as e:
         raise Exception(f"Failed to send email: {str(e)}")
 
@@ -1096,16 +1091,16 @@ from langchain_huggingface import HuggingFaceEndpointEmbeddings
 
 logger = logging.getLogger(__name__)
 
-HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
-HUGGINGFACE_EMBEDDING_MODEL = os.getenv("HUGGINGFACE_EMBEDDING_MODEL")
+EMBEDDING_HUGGINGFACE_API_KEY = os.getenv("EMBEDDING_HUGGINGFACE_API_KEY")
+EMBEDDING_HUGGINGFACE_MODEL = os.getenv("EMBEDDING_HUGGINGFACE_MODEL")
 
 try:
     embedding_model = HuggingFaceEndpointEmbeddings(
-        model=HUGGINGFACE_EMBEDDING_MODEL,
+        model=EMBEDDING_HUGGINGFACE_MODEL,
         task="feature-extraction",
-        huggingfacehub_api_token=HUGGINGFACE_API_KEY,
+        huggingfacehub_api_token=EMBEDDING_HUGGINGFACE_API_KEY,
     )
-    logger.info(f"âœ… HuggingFace embedding model loaded: {HUGGINGFACE_EMBEDDING_MODEL}")
+    logger.info(f"âœ… HuggingFace embedding model loaded: {EMBEDDING_HUGGINGFACE_MODEL}")
 except Exception as e:
     logger.error(f"â‌Œ Failed to load HuggingFace embedding model: {repr(e)}")
     raise
@@ -1142,7 +1137,7 @@ from api.app.database import ensure_mongo_collections, get_minio_client, ensure_
 
 logger = logging.getLogger(__name__)
 
-DATAX_MINIO_BUCKET_SHEETS = os.getenv("DATAX_MINIO_BUCKET_SHEETS")
+STORAGE_MINIO_BUCKET_SHEET= os.getenv("STORAGE_MINIO_BUCKET_SHEET")
 
 client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
 
@@ -1161,7 +1156,7 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
     Storing CSV in MinIO, storing metadata in Mongo, and inserting vectors in Qdrant
     """
     minio_client = get_minio_client()
-    ensure_bucket(minio_client, DATAX_MINIO_BUCKET_SHEETS)
+    ensure_bucket(minio_client,STORAGE_MINIO_BUCKET_SHEET)
 
     # Save CSV temporarily
     with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
@@ -1170,8 +1165,8 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
 
     object_name = f"{user_id}/{sheet_id}.csv"
     try:
-        minio_client.fput_object(DATAX_MINIO_BUCKET_SHEETS, object_name, csv_path)
-        logger.info(f"âœ… Uploaded {object_name} to MinIO bucket {DATAX_MINIO_BUCKET_SHEETS}")
+        minio_client.fput_object(STORAGE_MINIO_BUCKET_SHEET, object_name, csv_path)
+        logger.info(f"âœ… Uploaded {object_name} to MinIO bucket {STORAGE_MINIO_BUCKET_SHEET}")
     except S3Error as e:
         os.remove(csv_path)
         logger.error(f"â‌Œ MinIO upload failed: {e}")
@@ -1182,7 +1177,7 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
         except Exception:
             pass
 
-    file_url = minio_file_url(DATAX_MINIO_BUCKET_SHEETS, object_name)
+    file_url = minio_file_url(STORAGE_MINIO_BUCKET_SHEET, object_name)
 
     # Build text chunks for RAG
     text_data = df.to_string(index=False)
@@ -1206,7 +1201,7 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
         "owner_id": user_id,
         "sheet_id": sheet_id,
         "sheet_name": sheet_name,
-        "bucket": DATAX_MINIO_BUCKET_SHEETS,
+        "bucket": STORAGE_MINIO_BUCKET_SHEET,
         "object_name": object_name,
         "filename": f"{sheet_id}.csv",
         "file_url": file_url,
@@ -1245,7 +1240,7 @@ from api.app.download_router import file_router
 
 load_dotenv(".env")
 
-SECRET_KEY = os.getenv("SESSION_SECRET_KEY")
+AUTH_SESSION_SECRET = os.getenv("AUTH_SESSION_SECRET")
 VPS_HOST=os.getenv('VPS_HOST')
 VPS_URL=os.getenv('VPS_URL')
 FRONTEND_URL = os.getenv("FRONTEND_URL")  
@@ -1256,7 +1251,7 @@ app = FastAPI(title="DATAX", description="API for chat, file upload, Google Shee
 # âœ… Session middleware 
 app.add_middleware(
     SessionMiddleware,
-    secret_key=SECRET_KEY,
+    secret_key=AUTH_SESSION_SECRET,
     same_site="none",  
     https_only=False,
     domain="none"
@@ -1448,8 +1443,7 @@ import pandas as pd
 
 from fastapi import APIRouter, Request
 
-from api.app.database import get_minio_client, DATAX_MINIO_BUCKET_SHEETS
-
+from api.app.database import get_minio_client, STORAGE_MINIO_BUCKET_SHEET
 from api.app.database import ensure_mongo_collections
 
 client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
@@ -1503,7 +1497,7 @@ def preview_google_sheet(sheet_id: str, user_id: str) -> Dict[str, Any]:
     tmp_path = f"/tmp/{sheet_id}.csv"
 
     try:
-        minio_client.fget_object(DATAX_MINIO_BUCKET_SHEETS, object_name, tmp_path)
+        minio_client.fget_object(STORAGE_MINIO_BUCKET_SHEET, object_name, tmp_path)
         df = pd.read_csv(tmp_path)
 
         headers = df.columns.tolist()
@@ -1520,7 +1514,7 @@ def load_google_sheet_to_dataframe(sheet_id: str, user_id: str) -> pd.DataFrame:
     tmp_path = f"/tmp/{sheet_id}.csv"
 
     try:
-        minio_client.fget_object(DATAX_MINIO_BUCKET_SHEETS, object_name, tmp_path)
+        minio_client.fget_object(STORAGE_MINIO_BUCKET_SHEET, object_name, tmp_path)
         return pd.read_csv(tmp_path)
     finally:
         if os.path.exists(tmp_path):
@@ -1573,7 +1567,7 @@ import tempfile
 from datetime import datetime, timezone
 import logging
 
-from api.app.database import ensure_mongo_collections, get_minio_client, DATAX_MINIO_ENDPOINT, DATAX_MINIO_BUCKET_UPLOADS
+from api.app.database import ensure_mongo_collections, get_minio_client, STORAGE_MINIO_ENDPOINT, STORAGE_MINIO_BUCKET_UPLOADS
 
 load_dotenv(".env")
 
@@ -1603,8 +1597,8 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         # Upload to MinIO
         object_name = f"{google_id}/{file.filename}"
         minio_client = get_minio_client()
-        minio_client.fput_object(DATAX_MINIO_BUCKET_UPLOADS, object_name, tmp_path)
-        logger.info(f"âœ… File uploaded to MinIO bucket={DATAX_MINIO_BUCKET_UPLOADS}, object={object_name}")
+        minio_client.fput_object(STORAGE_MINIO_BUCKET_UPLOADS, object_name, tmp_path)
+        logger.info(f"âœ… File uploaded to MinIO bucket={STORAGE_MINIO_BUCKET_UPLOADS}, object={object_name}")
 
         # Try read CSV/Excel for metadata (optional)
         rows, columns, headers = None, None, []
@@ -1623,14 +1617,14 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         os.remove(tmp_path)
 
         # File URL
-        file_url = f"http://{DATAX_MINIO_ENDPOINT}/{DATAX_MINIO_BUCKET_UPLOADS}/{object_name}"
+        file_url = f"http://{STORAGE_MINIO_ENDPOINT}/{STORAGE_MINIO_BUCKET_UPLOADS}/{object_name}"
 
         # Store metadata in MongoDB
         metadata = {
             "owner_id": google_id,
             "filename": file.filename,
             "object_name": object_name,  # user_id/filename
-            "bucket": DATAX_MINIO_BUCKET_UPLOADS,
+            "bucket": STORAGE_MINIO_BUCKET_UPLOADS,
             "url": file_url,
             "rows": rows,
             "columns": columns,
@@ -1658,7 +1652,7 @@ def analyze_uploaded_file(filename: str, user_id: str, operation: str, column: s
 
     try:
         # Download file from MinIO
-        minio_client.fget_object(DATAX_MINIO_BUCKET_UPLOADS, object_name, tmp_path)
+        minio_client.fget_object(STORAGE_MINIO_BUCKET_UPLOADS, object_name, tmp_path)
 
         # Load into DataFrame
         if filename.endswith(".csv"):
@@ -1704,7 +1698,7 @@ def list_uploaded_files(user_id: str):
     return files
 
 
-########
+#########
 
 
 
@@ -1719,13 +1713,13 @@ from qdrant_client.http import models as rest
 
 logger = logging.getLogger(__name__)
 
-QDRANT_URL = os.getenv("QDRANT_URL")
+VECTOR_QDRANT_URL = os.getenv("VECTOR_QDRANT_URL")
 COLLECTION_NAME = "sheets"
 
 # Connect to Qdrant
 try:
-    client = QdrantClient(url=QDRANT_URL, prefer_grpc=False, timeout=30, check_compatibility=False)
-    logger.info(f"âœ… Connected to Qdrant at {QDRANT_URL}")
+    client = QdrantClient(url=VECTOR_QDRANT_URL, prefer_grpc=False, timeout=30, check_compatibility=False)
+    logger.info(f"âœ… Connected to Qdrant at {VECTOR_QDRANT_URL}")
 except Exception as e:
     logger.error(f"â‌Œ Failed to connect to Qdrant: {e}")
     raise
