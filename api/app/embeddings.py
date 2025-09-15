@@ -5,16 +5,16 @@ from langchain_huggingface import HuggingFaceEndpointEmbeddings
 
 logger = logging.getLogger(__name__)
 
-HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
-HUGGINGFACE_EMBEDDING_MODEL = os.getenv("HUGGINGFACE_EMBEDDING_MODEL")
+EMBEDDING_HUGGINGFACE_API_KEY = os.getenv("EMBEDDING_HUGGINGFACE_API_KEY")
+EMBEDDING_HUGGINGFACE_MODEL = os.getenv("EMBEDDING_HUGGINGFACE_MODEL")
 
 try:
     embedding_model = HuggingFaceEndpointEmbeddings(
-        model=HUGGINGFACE_EMBEDDING_MODEL,
+        model=EMBEDDING_HUGGINGFACE_MODEL,
         task="feature-extraction",
-        huggingfacehub_api_token=HUGGINGFACE_API_KEY,
+        huggingfacehub_api_token=EMBEDDING_HUGGINGFACE_API_KEY,
     )
-    logger.info(f"✅ HuggingFace embedding model loaded: {HUGGINGFACE_EMBEDDING_MODEL}")
+    logger.info(f"✅ HuggingFace embedding model loaded: {EMBEDDING_HUGGINGFACE_MODEL}")
 except Exception as e:
     logger.error(f"❌ Failed to load HuggingFace embedding model: {repr(e)}")
     raise

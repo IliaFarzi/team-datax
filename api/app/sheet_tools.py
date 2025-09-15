@@ -10,8 +10,7 @@ import pandas as pd
 
 from fastapi import APIRouter, Request
 
-from api.app.database import get_minio_client, DATAX_MINIO_BUCKET_SHEETS
-
+from api.app.database import get_minio_client, STORAGE_MINIO_BUCKET_SHEET
 from api.app.database import ensure_mongo_collections
 
 client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
@@ -65,7 +64,7 @@ def preview_google_sheet(sheet_id: str, user_id: str) -> Dict[str, Any]:
     tmp_path = f"/tmp/{sheet_id}.csv"
 
     try:
-        minio_client.fget_object(DATAX_MINIO_BUCKET_SHEETS, object_name, tmp_path)
+        minio_client.fget_object(STORAGE_MINIO_BUCKET_SHEET, object_name, tmp_path)
         df = pd.read_csv(tmp_path)
 
         headers = df.columns.tolist()
@@ -82,7 +81,7 @@ def load_google_sheet_to_dataframe(sheet_id: str, user_id: str) -> pd.DataFrame:
     tmp_path = f"/tmp/{sheet_id}.csv"
 
     try:
-        minio_client.fget_object(DATAX_MINIO_BUCKET_SHEETS, object_name, tmp_path)
+        minio_client.fget_object(STORAGE_MINIO_BUCKET_SHEET, object_name, tmp_path)
         return pd.read_csv(tmp_path)
     finally:
         if os.path.exists(tmp_path):

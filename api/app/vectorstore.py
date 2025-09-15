@@ -8,13 +8,13 @@ from qdrant_client.http import models as rest
 
 logger = logging.getLogger(__name__)
 
-QDRANT_URL = os.getenv("QDRANT_URL")
+VECTOR_QDRANT_URL = os.getenv("VECTOR_QDRANT_URL")
 COLLECTION_NAME = "sheets"
 
 # Connect to Qdrant
 try:
-    client = QdrantClient(url=QDRANT_URL, prefer_grpc=False, timeout=30, check_compatibility=False)
-    logger.info(f"✅ Connected to Qdrant at {QDRANT_URL}")
+    client = QdrantClient(url=VECTOR_QDRANT_URL, prefer_grpc=False, timeout=30, check_compatibility=False)
+    logger.info(f"✅ Connected to Qdrant at {VECTOR_QDRANT_URL}")
 except Exception as e:
     logger.error(f"❌ Failed to connect to Qdrant: {e}")
     raise

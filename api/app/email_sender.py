@@ -9,30 +9,30 @@ from ssl import create_default_context
 
 load_dotenv = (".env")
 
-MAIL_HOST = os.getenv("MAIL_HOST")
-MAIL_PORT = os.getenv("MAIL_PORT")
-MAIL_USER = os.getenv("MAIL_USER")
-MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
+MAIL_SMTP_HOST = os.getenv("MAIL_SMTP_HOST")
+MAIL_SMTP_PORT = os.getenv("MAIL_SMTP_PORT")
+MAIL_SMTP_USER = os.getenv("MAIL_SMTP_USER")
+MAIL_SMTP_PASSWORD = os.getenv("MAIL_SMTP_PASSWORD")
 MAIL_FROM_NAME = os.getenv("MAIL_FROM_NAME")
 MAIL_FROM_ADDRESS = os.getenv("MAIL_FROM_ADDRESS")
 FRONTEND_URL = os.getenv('FRONTEND_URL')
 
-if not all([MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASSWORD, MAIL_FROM_NAME, MAIL_FROM_ADDRESS]):
+if not all([MAIL_SMTP_HOST, MAIL_SMTP_PORT, MAIL_SMTP_USER, MAIL_SMTP_PASSWORD, MAIL_FROM_NAME, MAIL_FROM_ADDRESS]):
     raise ValueError("Missing email configuration environment variables")
 
 
 def send_email(to_address, subject, body):
     try:
         # Enforce TLS
-        print(f"Attempting to connect to {MAIL_HOST}:{MAIL_PORT}")
+        print(f"Attempting to connect to {MAIL_SMTP_HOST}:{MAIL_SMTP_PORT}")
         context = create_default_context()
 
         # Connect to the server
         with smtplib.SMTP_SSL(
-             MAIL_HOST, MAIL_PORT, context=context
+             MAIL_SMTP_HOST, MAIL_SMTP_PORT, context=context
         ) as server:
             print("Connected to SMTP server")
-            server.login(MAIL_USER, MAIL_PASSWORD)
+            server.login(MAIL_SMTP_USER, MAIL_SMTP_PASSWORD)
             print("Logged in successfully")
 
             # Prepare the email
@@ -47,9 +47,9 @@ def send_email(to_address, subject, body):
             server.sendmail(MAIL_FROM_ADDRESS, to_address, msg.as_string())
             print(f"Email sent to {to_address} successfully!")
     except smtplib.SMTPConnectError as e:
-        raise Exception(f"SMTP connection failed: {str(e)} (Check MAIL_HOST and DNS)")
+        raise Exception(f"SMTP connection failed: {str(e)} (Check MAIL_SMTP_HOST and DNS)")
     except smtplib.SMTPAuthenticationError as e:
-        raise Exception(f"SMTP authentication failed: {str(e)} (Check MAIL_USER and MAIL_PASSWORD)")
+        raise Exception(f"SMTP authentication failed: {str(e)} (Check MAIL_SMTP_USER and MAIL_SMTP_PASSWORD)")
     except Exception as e:
         raise Exception(f"Failed to send email: {str(e)}")
 

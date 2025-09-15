@@ -111,8 +111,8 @@ def make_wrapped_tools(request: Request):
 load_dotenv(".env")
 
 # Access API keys
-openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
-openrouter_base_url = os.getenv("OPENROUTER_API_BASE")
+LLM_OPENROUTER_API_KEY = os.getenv("LLM_OPENROUTER_API_KEY")
+LLM_OPENROUTER_API_BASE = os.getenv("LLM_OPENROUTER_API_BASE")
 
 def pre_model_hook(state):
     """Before calling LLM → keep only the last 5 messages"""
@@ -124,8 +124,8 @@ def pre_model_hook(state):
 def get_agent(model_name: str, request: Request):
     llm = ChatOpenAI(
         model=model_name,
-        api_key=openrouter_api_key,
-        base_url=openrouter_base_url,
+        api_key=LLM_OPENROUTER_API_KEY,
+        base_url=LLM_OPENROUTER_API_BASE,
         max_tokens= 4096,
         temperature=0.7,
         top_p= 0.9,
