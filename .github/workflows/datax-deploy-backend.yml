@@ -113,7 +113,6 @@ jobs:
 
               echo "VPS_HOST=${{ secrets.VPS_HOST }}" >> .env.datax
               echo "VPS_USERNAME=${{ secrets.VPS_USERNAME }}" >> .env.datax
-              echo "VPS_PRIVATE_KEY=${{ secrets.VPS_PRIVATE_KEY }}" >> .env.datax
               echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
               echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
 
@@ -160,7 +159,6 @@ jobs:
 
               echo "VPS_HOST=${{ secrets.VPS_HOST }}" >> .env.datax
               echo "VPS_USERNAME=${{ secrets.VPS_USERNAME }}" >> .env.datax
-              echo "VPS_PRIVATE_KEY=${{ secrets.VPS_PRIVATE_KEY }}" >> .env.datax
               echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
               echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
               
