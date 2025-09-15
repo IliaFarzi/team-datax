@@ -160,4 +160,4 @@ jobs:
             docker compose -f docker-compose.yml pull
             docker compose -f docker-compose.yml up -d
 
-            echo "✅ Deployment successful! Visit: http://62.60.198.4:8040"
+            echo " ✅ Deployment successful! Visit: http://62.60.198.4:8040"
