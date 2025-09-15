@@ -1,8 +1,23 @@
-/api/app/client_secret.json
-.env
-__pycache__
-client_secret.json
-app/client_secret.json
-.txt
-.sh
-.ps1
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Env files
+*.env
+*.env.*     # مثل .env.local یا .env.datax
+
+# Config / credentials
+*.json
+*.sh
+*.ps1
+
+# Text dumps
+*.txt
+
+# Logs
+*.log
+
+# OS-specific
+.DS_Store
+Thumbs.db

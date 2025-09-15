@@ -10,7 +10,7 @@ file_router = APIRouter(prefix="/files", tags=["File Download"])
 
 client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
 
-from api.app.database import DATAX_MINIO_BUCKET_SHEETS, DATAX_MINIO_BUCKET_UPLOADS
+from api.app.database import STORAGE_MINIO_BUCKET_SHEETS, STORAGE_MINIO_BUCKET_UPLOADS
 
 def generate_presigned_url(bucket: str, object_name: str, expiry: int = 3600):
     """Generate a presigned URL for downloading from MinIO"""
@@ -33,7 +33,7 @@ def download_user_file(filename: str, user=Depends(get_current_user)):
     # first search in sheets
     try:
         object_name = f"{owner_id}/{filename}"
-        url = generate_presigned_url(DATAX_MINIO_BUCKET_SHEETS, object_name)
+        url = generate_presigned_url(STORAGE_MINIO_BUCKET_SHEETS, object_name)
         return {"download_url": url}
     except:
         pass
@@ -41,7 +41,7 @@ def download_user_file(filename: str, user=Depends(get_current_user)):
     # second search in uploads
     try:
         object_name = f"{owner_id}/{filename}"
-        url = generate_presigned_url(DATAX_MINIO_BUCKET_UPLOADS, object_name)
+        url = generate_presigned_url(STORAGE_MINIO_BUCKET_UPLOADS, object_name)
         return {"download_url": url}
     except:
         pass

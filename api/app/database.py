@@ -21,13 +21,14 @@ logger = logging.getLogger(__name__)
 # =========================
 # MongoDB config
 # =========================
-DATAX_MONGO_URI = os.getenv("DB_MONGO_URI")
-DATAX_MONGO_DB_NAME = os.getenv("DB_MONGO_NAME")
-DATAX_MONGO_COLLECTION_NAME = os.getenv("DB_MONGO_COLLECTION_CHAT_SESSIONS")
+DB_MONGO_URI = os.getenv("DB_MONGO_URI")
+DB_MONGO_NAME = os.getenv("DB_MONGO_NAME")
+DB_MONGO_COLLECTION_CHAT_SESSIONS = os.getenv("DB_MONGO_COLLECTION_CHAT_SESSIONS")
+DB_MONGO_COLLECTION_USERS = os.getenv("DB_MONGO_COLLECTION_USERS")
 
 # Check for MongoDB environment variables
-if not all([DATAX_MONGO_URI, DATAX_MONGO_DB_NAME, DATAX_MONGO_COLLECTION_NAME]):
-    print("❌ Missing MongoDB environment variables: DATAX_MONGO_URI, DATAX_MONGO_DB_NAME, DATAX_MONGO_COLLECTION_NAME")
+if not all([DB_MONGO_URI, DB_MONGO_NAME, DB_MONGO_COLLECTION_CHAT_SESSIONS]):
+    print("❌ Missing MongoDB environment variables: DB_MONGO_URI, DB_MONGO_NAME, DB_MONGO_COLLECTION_CHAT_SESSIONS")
     raise ValueError("MongoDB environment variables are not set")
 
 def get_mongo_client() -> MongoClient:
@@ -39,7 +40,7 @@ def get_mongo_client() -> MongoClient:
         ConnectionFailure: If connection to MongoDB fails.
     """
     try:
-        client = MongoClient(DATAX_MONGO_URI, server_api=ServerApi('1'))
+        client = MongoClient(DB_MONGO_URI, server_api=ServerApi('1'))
         client.admin.command('ping')
         return client
     except ConnectionFailure as e:
@@ -56,20 +57,22 @@ def ensure_mongo_collections() -> tuple:
         tuple: (MongoClient, database, chat_sessions_collection, users_collection)
     """
     client = get_mongo_client()
-    db = client[DATAX_MONGO_DB_NAME]
-    chat_sessions_collection = db[DATAX_MONGO_COLLECTION_NAME]
-    users_collection = db["users"]
+    db = client[DB_MONGO_NAME]
+    chat_sessions_collection = db[DB_MONGO_COLLECTION_CHAT_SESSIONS]
+    users_collection = db[DB_MONGO_COLLECTION_USERS]
     return client, db, chat_sessions_collection, users_collection
 
 # =========================
 # Init check (runs once at import)
 # =========================
 # MongoDB init
-if DATAX_MONGO_URI and DATAX_MONGO_DB_NAME and DATAX_MONGO_COLLECTION_NAME:
+if DB_MONGO_URI and DB_MONGO_NAME and DB_MONGO_COLLECTION_CHAT_SESSIONS:
     print("\n================ MongoDB Connection Debug ================")
-    print(f"📌 DATAX_MONGO_URI: {DATAX_MONGO_URI[:20]}...")  # Hide sensitive part
-    print(f"📌 DATAX_MONGO_DB_NAME: {DATAX_MONGO_DB_NAME}")
-    print(f"📌 DATAX_MONGO_COLLECTION_NAME: {DATAX_MONGO_COLLECTION_NAME}")
+    print(f"📌 DB_MONGO_URI: {DB_MONGO_URI[:20]}...")  # Hide sensitive part
+    print(f"📌 DB_MONGO_NAME: {DB_MONGO_NAME}")
+    print(f"📌 DB_MONGO_COLLECTION_CHAT_SESSIONS: {DB_MONGO_COLLECTION_CHAT_SESSIONS}")
+    print(f"📌 DB_MONGO_COLLECTION_USERS: {DB_MONGO_COLLECTION_USERS}")
+
     try:
         mongo_client = get_mongo_client()
         print("✅ MongoDB connection established successfully!")

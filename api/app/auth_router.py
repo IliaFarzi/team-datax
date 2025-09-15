@@ -118,7 +118,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token")
     try:
-        user = db["users"].find_one({"_id": ObjectId(user_id)})
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
     except:
         raise HTTPException(status_code=401, detail="Invalid user id in token")
     if not user:
@@ -144,7 +144,7 @@ def get_current_email_from_session(user: Dict[str, Any] = Depends(get_current_us
 @auth_router.post("/signup")
 async def signup(payload: SignupIn):
     from api.app.agent import get_agent  # Lazy import
-    existing = db["users"].find_one({"email": payload.email})
+    existing = users_collection.find_one({"email": payload.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -166,7 +166,7 @@ async def signup(payload: SignupIn):
         "last_login": None,
         "google_credentials": None,
     }
-    result = db["users"].insert_one(user_doc)
+    result = users_collection.insert_one(user_doc)
 
     # ⚡ Now we put the real user_id in the token
     token = create_access_token({"sub": str(result.inserted_id)})
@@ -184,7 +184,7 @@ async def signup(payload: SignupIn):
 def login(payload: LoginIn):
     from api.app.agent import get_agent  # Lazy import
     # Find user by email
-    user = db["users"].find_one({"email": payload.email})
+    user = users_collection.find_one({"email": payload.email})
     if not user or not verify_password(payload.password, user.get("password_hash", "")):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
@@ -193,7 +193,7 @@ def login(payload: LoginIn):
         raise HTTPException(status_code=403, detail="Account not verified. Please verify your email first.")
 
     # Update last_login timestamp
-    db["users"].update_one(
+    users_collection.update_one(
         {"_id": user["_id"]},
         {"$set": {"last_login": datetime.now(timezone.utc)}}
     )
@@ -218,7 +218,7 @@ def login(payload: LoginIn):
 # =========================
 @auth_router.post("/verify")
 def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_session)):
-    user = db["users"].find_one({"email": email})
+    user = users_collection.find_one({"email": email})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
@@ -235,10 +235,10 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
         raise HTTPException(status_code=429, detail="Too many attempts. Request a new OTP.")
 
     if not verify_password(payload.code, user.get("verification_code")):
-        db["users"].update_one({"_id": user["_id"]}, {"$inc": {"otp_attempts": 1}})
+        users_collection.update_one({"_id": user["_id"]}, {"$inc": {"otp_attempts": 1}})
         raise HTTPException(status_code=400, detail="Invalid verification code")
     
-    db["users"].update_one(
+    users_collection.update_one(
         {"_id": user["_id"]},
         {"$set": {
             "is_verified": True,
@@ -263,7 +263,7 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
 # =========================
 @auth_router.post("/forgot-password")
 def forgot_password(payload: ForgotPasswordIn):
-    user = db["users"].find_one({"email": payload.email})
+    user = users_collection.find_one({"email": payload.email})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
@@ -289,11 +289,11 @@ def forgot_password(payload: ForgotPasswordIn):
 # =========================
 @auth_router.post("/reset-password")
 def reset_password(payload: ResetPasswordIn, email: str = Depends(get_current_email_from_session)):
-    user = db["users"].find_one({"email": email})
+    user = users_collection.find_one({"email": email})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    db["users"].update_one(
+    users_collection.update_one(
         {"_id": user["_id"]},
         {"$set": {"password_hash": hash_password(payload.new_password)}}
     )
@@ -377,7 +377,7 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
         "client_secret": credentials.client_secret,
         "scopes": credentials.scopes,
     }
-    db["users"].update_one(
+    users_collection.update_one(
         {"_id": user["_id"]},
         {"$set": {
             "google_email": google_email,
