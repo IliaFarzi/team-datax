@@ -5,4 +5,7 @@ client_secret.json
 app/client_secret.json
 .txt
 .sh
-.ps1
+upload_secrets_gh.ps1
+secrets.env
+all_code.txt
+example.env.datax
