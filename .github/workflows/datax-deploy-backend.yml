@@ -70,6 +70,7 @@ jobs:
 
             # Select secrets based on branch
             if [[ "${GITHUB_REF##*/}" == "main" ]]; then
+
               echo "AUTH_JWT_SECRET=${{ secrets.PROD_AUTH_JWT_SECRET }}" > .env.datax
               echo "AUTH_SESSION_SECRET=${{ secrets.PROD_AUTH_SESSION_SECRET }}" >> .env.datax
 
@@ -109,6 +110,12 @@ jobs:
 
               echo "FRONTEND_URL=${{ secrets.PROD_FRONTEND_URL }}" >> .env.datax
               echo "VPS_URL=${{ secrets.PROD_VPS_URL }}" >> .env.datax
+
+              echo "VPS_HOST=${{ secrets.VPS_HOST }}" >> .env.datax
+              echo "VPS_USERNAME=${{ secrets.VPS_USERNAME }}" >> .env.datax
+              echo "VPS_PRIVATE_KEY=${{ secrets.VPS_PRIVATE_KEY }}" >> .env.datax
+              echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
+              echo ".DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
 
             else
               echo "AUTH_JWT_SECRET=${{ secrets.DEV_AUTH_JWT_SECRET }}" > .env.datax
@@ -150,6 +157,13 @@ jobs:
 
               echo "FRONTEND_URL=${{ secrets.DEV_FRONTEND_URL }}" >> .env.datax
               echo "VPS_URL=${{ secrets.DEV_VPS_URL }}" >> .env.datax
+
+              echo "VPS_HOST=${{ secrets.VPS_HOST }}" >> .env.datax
+              echo "VPS_USERNAME=${{ secrets.VPS_USERNAME }}" >> .env.datax
+              echo "VPS_PRIVATE_KEY=${{ secrets.VPS_PRIVATE_KEY }}" >> .env.datax
+              echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
+              echo ".DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
+              
             fi
 
             # Stop and remove old container if exists
