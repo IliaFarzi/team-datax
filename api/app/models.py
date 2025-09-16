@@ -115,3 +115,8 @@ class ExchangeCodeIn(BaseModel):
 class RagQueryIn(BaseModel):
     question: str
     top_k: int = 5
+
+class ResetPasswordIn(BaseModel):
+    email: str
+    code: str
+    new_password: str

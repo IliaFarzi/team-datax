@@ -23,8 +23,8 @@ from dotenv import load_dotenv
 from api.app.database import ensure_mongo_collections
 from api.app.session_manager import sessions
 from api.app.ingesting_sheet import ingest_sheet
-from api.app.models import SignupIn, LoginIn, VerifyIn, ForgotPasswordIn, ResetPasswordIn, ExchangeCodeIn
-from api.app.email_sender import send_otp
+from api.app.models import SignupIn, LoginIn, VerifyIn, ForgotPasswordIn, ResetPasswordIn,ResetPasswordIn, ExchangeCodeIn
+from api.app.email_sender import send_otp, send_reset_code
 
 # =========================
 # Environment & constants
@@ -259,56 +259,53 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
     return success
 
 # =========================
-# /auth/forgot-password
+# /auth/request_password_reset
 # =========================
-@auth_router.post("/forgot-password")
-def forgot_password(payload: ForgotPasswordIn):
+@auth_router.post("/reset-password/request")
+def request_password_reset(payload: ForgotPasswordIn):
     user = db["users"].find_one({"email": payload.email})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
-    reset_token = create_access_token({"sub": str(user["_id"])})
-    reset_link = f"{FRONTEND_URL}/reset-password?token={reset_token}"
-    token = create_access_token({"sub": str(user["_id"])})
-    
-    success = {
-        "message": "Password reset link generated successfully",
-        "token":token,
-        "email": user.get("email"),
-        "user_id": str(user["_id"]),
-        "reset_link": reset_link
-    }
-    
-    # Log
-    print(success)    
-    return success
 
+    reset_code = ''.join(secrets.choice('0123456789') for _ in range(6))
+
+    db["users"].update_one(
+        {"_id": user["_id"]},
+        {"$set": {
+            "reset_code": pwd_context.hash(reset_code),
+            "reset_code_expires_at": datetime.now(timezone.utc) + timedelta(minutes=10),
+            "reset_attempts": 0
+        }}
+    )
+
+    send_reset_code(payload.email, reset_code)
+
+    return {"message": "Password reset code sent to your email"}
 
 # =========================
-# /auth/reset-password
+# /auth/confirm_password_reset
 # =========================
-@auth_router.post("/reset-password")
-def reset_password(payload: ResetPasswordIn, email: str = Depends(get_current_email_from_session)):
-    user = db["users"].find_one({"email": email})
+@auth_router.post("/reset-password/confirm")
+def confirm_password_reset(payload: ResetPasswordIn):
+    user = db["users"].find_one({"email": payload.email})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    expires_at = user.get("reset_code_expires_at")
+    if not expires_at or expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Reset code expired")
+
+    if not pwd_context.verify(payload.code, user.get("reset_code", "")):
+        db["users"].update_one({"_id": user["_id"]}, {"$inc": {"reset_attempts": 1}})
+        raise HTTPException(status_code=400, detail="Invalid reset code")
 
     db["users"].update_one(
         {"_id": user["_id"]},
         {"$set": {"password_hash": hash_password(payload.new_password)}}
     )
-    token = create_access_token({"sub": str(user["_id"])})
-    success = {
-        "message": "Password reset successful",
-        "token": token,
-        "email": email,
-        "user_id": str(user["_id"])
-    }
-    
-    # Log
-    print(success)
-    return success
 
+    token = create_access_token({"sub": str(user["_id"])})
+    return {"message": "Password reset successful", "token": token}
 
 # ==========================================
 # Connect Google Sheets (redirect + callback combined)
