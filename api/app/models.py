@@ -102,12 +102,6 @@ class LoginIn(BaseModel):
 class VerifyIn(BaseModel):
     code: str  # email will be taken from token
 
-class ForgotPasswordIn(BaseModel):
-    email: EmailStr
-
-class ResetPasswordIn(BaseModel):
-    new_password: str  # email will be taken from token
-
 class ExchangeCodeIn(BaseModel):
     code: str
     state: str
@@ -120,3 +114,6 @@ class ResetPasswordIn(BaseModel):
     email: str
     code: str
     new_password: str
+
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
