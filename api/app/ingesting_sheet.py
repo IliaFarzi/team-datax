@@ -7,8 +7,6 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from minio.error import S3Error
-from api.app.vectorstore import insert_embeddings, client, COLLECTION_NAME
-from api.app.embeddings import embed_text
 from api.app.database import ensure_mongo_collections, get_minio_client, ensure_bucket, minio_file_url
 
 logger = logging.getLogger(__name__)
@@ -17,22 +15,12 @@ STORAGE_MINIO_BUCKET_SHEET= os.getenv("STORAGE_MINIO_BUCKET_SHEET")
 
 client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
 
-
-def chunk_text(text: str, max_tokens: int = 200) -> List[str]:
-    """The simplest way to chunk: every N words is a chunk"""
-    words = text.split()
-    return [
-        " ".join(words[i:i + max_tokens])
-        for i in range(0, len(words), max_tokens)
-    ]
-
-
 def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame) -> Dict[str, Any]:
     """
-    Storing CSV in MinIO, storing metadata in Mongo, and inserting vectors in Qdrant
+    Storing CSV in MinIO, storing metadata in Mongo
     """
     minio_client = get_minio_client()
-    ensure_bucket(minio_client,STORAGE_MINIO_BUCKET_SHEET)
+    ensure_bucket(minio_client, STORAGE_MINIO_BUCKET_SHEET)
 
     # Save CSV temporarily
     with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
@@ -55,24 +43,7 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
 
     file_url = minio_file_url(STORAGE_MINIO_BUCKET_SHEET, object_name)
 
-    # Build text chunks for RAG
-    text_data = df.to_string(index=False)
-    chunks = chunk_text(text_data, max_tokens=200)
-    logger.info(f"📑 Created {len(chunks)} text chunks from sheet '{sheet_name}'")
-
-    # Try embedding but don't fail the entire ingestion
-    embedding_success = False
-    try:
-        vectors = embed_text(chunks)
-        metadatas = [{"chunk": chunk} for chunk in chunks]
-
-        insert_embeddings(client, COLLECTION_NAME, vectors, metadatas, user_id)
-        embedding_success = True
-        logger.info(f"✅ Successfully embedded and stored chunks for sheet '{sheet_name}'")
-    except Exception as e:
-        logger.error(f"⚠️ Failed to create embeddings for sheet '{sheet_name}': {str(e)}")
-
-    # Mongo metadata
+    # Mongo metadata (بدون embedding_success)
     meta = {
         "owner_id": user_id,
         "sheet_id": sheet_id,
@@ -84,8 +55,7 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
         "headers": df.columns.tolist(),
         "rows_saved": int(df.shape[0]),
         "columns": int(df.shape[1]),
-        "updated_at": datetime.now(timezone.utc),
-        "embedding_success": embedding_success
+        "updated_at": datetime.now(timezone.utc)
     }
 
     db["spreadsheet_metadata"].update_one(
@@ -96,3 +66,4 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
 
     logger.info(f"💾 Metadata saved to Mongo for sheet '{sheet_name}' (user={user_id})")
     return meta
+
