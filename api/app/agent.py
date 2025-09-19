@@ -3,7 +3,6 @@ from langgraph.prebuilt import create_react_agent
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import StructuredTool
 from langgraph.checkpoint.memory import MemorySaver 
-from langchain_core.output_parsers import StrOutputParser
 
 from fastapi import Request
 
@@ -21,23 +20,10 @@ from api.app.sheet_tools import (
 )
 from api.app.upload_router import analyze_uploaded_file, list_uploaded_files
 
-from api.app.embeddings import embed_text
-
-from api.app.vectorstore import search_vectors
-
 
 def make_wrapped_tools(request: Request):
 
     user_id = str(request.session.get("user_id"))
-
-    # RAG tool
-    def wrapped_search_vector_db(query: str, top_k: int = 5):
-        query_vector = embed_text([query])[0]
-        results = search_vectors(user_id, query_vector, top_k=top_k)
-        texts = [r.payload.get("chunk", "") for r in results]
-        stitched = "\n\n".join(texts)
-        logger.info("Using SearchVectorDB tool 🔧")
-        return stitched or "No relevant context found."
     
     # Show all data in one place
     def wrapped_show_all_data():
@@ -100,9 +86,6 @@ def make_wrapped_tools(request: Request):
         StructuredTool.from_function(func=wrapped_analyze_google_sheet, name="AnalyzeGoogleSheet", description="Perform analysis like sum, mean, filter."),
         StructuredTool.from_function(func=wrapped_list_uploaded_files, name="ListUploadedFiles", description="List all files uploaded by the logged-in user."),
         StructuredTool.from_function(func=wrapped_analyze_uploaded_file, name="AnalyzeUploadedFile", description="Analyze an uploaded CSV/Excel file."),
-        # 🔹 New RAG tool
-        StructuredTool.from_function(func=wrapped_search_vector_db,name="SearchVectorDB",description="Search the user's uploaded files and Google Sheets content using embeddings."),
-        # 🔹Show all data in one place
         StructuredTool.from_function(func=wrapped_show_all_data,name="ShowAllData",description="Show all data (uploads and sheets) together.")]
     return tools
 
@@ -151,7 +134,6 @@ def get_agent(model_name: str, request: Request):
     - AnalyzeGoogleSheet
     - ListUploadedFiles
     - AnalyzeUploadedFile
-    - SearchVectorDB
     - ShowAllData
 
     **Important:**
