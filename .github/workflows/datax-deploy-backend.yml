@@ -3,28 +3,76 @@ name: datax-deploy-backend
 on:
   push:
     branches:
-      - main      # for Production
-      - develop   # for Development
+      - main      # Development
+      - prod      # Production
     paths:
       - 'api/**'
-      - '.github\workflows\datax-deploy-backend.yml'
-
+      - '.github/workflows/datax-deploy-backend.yml'
 
 jobs:
   build_and_push:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
+
+      # =========================
+      # Set environment variables dynamically
+      # =========================
+      - name: Set environment variables
+        run: |
+          if [ "${GITHUB_REF##*/}" = "prod" ]; then
+            PREFIX="PROD"
+          else
+            PREFIX="DEV"
+          fi
+
+          # Map all secrets using PREFIX
+          echo "AUTH_GOOGLE_CLIENT_ID=${{ secrets[format('{0}_AUTH_GOOGLE_CLIENT_ID', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "AUTH_GOOGLE_CLIENT_SECRET=${{ secrets[format('{0}_AUTH_GOOGLE_CLIENT_SECRET', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "AUTH_GOOGLE_PROJECT_ID=${{ secrets[format('{0}_AUTH_GOOGLE_PROJECT_ID', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "AUTH_GOOGLE_URI_AUTH=${{ secrets[format('{0}_AUTH_GOOGLE_URI_AUTH', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "AUTH_GOOGLE_URI_CERTS=${{ secrets[format('{0}_AUTH_GOOGLE_URI_CERTS', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "AUTH_GOOGLE_URI_TOKEN=${{ secrets[format('{0}_AUTH_GOOGLE_URI_TOKEN', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "AUTH_JWT_SECRET=${{ secrets[format('{0}_AUTH_JWT_SECRET', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "AUTH_SESSION_SECRET=${{ secrets[format('{0}_AUTH_SESSION_SECRET', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "DB_MONGO_COLLECTION_CHAT_SESSIONS=${{ secrets[format('{0}_DB_MONGO_COLLECTION_CHAT_SESSIONS', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "DB_MONGO_COLLECTION_USERS=${{ secrets[format('{0}_DB_MONGO_COLLECTION_USERS', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "DB_MONGO_NAME=${{ secrets[format('{0}_DB_MONGO_NAME', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "DB_MONGO_URI=${{ secrets[format('{0}_DB_MONGO_URI', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "EMBEDDING_HUGGINGFACE_API_KEY=${{ secrets[format('{0}_EMBEDDING_HUGGINGFACE_API_KEY', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "EMBEDDING_HUGGINGFACE_MODEL=${{ secrets[format('{0}_EMBEDDING_HUGGINGFACE_MODEL', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "FRONTEND_URL=${{ secrets[format('{0}_FRONTEND_URL', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "LLM_OPENROUTER_API_BASE=${{ secrets[format('{0}_LLM_OPENROUTER_API_BASE', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "LLM_OPENROUTER_API_KEY=${{ secrets[format('{0}_LLM_OPENROUTER_API_KEY', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "MAIL_FROM_ADDRESS=${{ secrets[format('{0}_MAIL_FROM_ADDRESS', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "MAIL_FROM_NAME=${{ secrets[format('{0}_MAIL_FROM_NAME', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "MAIL_SMTP_HOST=${{ secrets[format('{0}_MAIL_SMTP_HOST', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "MAIL_SMTP_PASSWORD=${{ secrets[format('{0}_MAIL_SMTP_PASSWORD', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "MAIL_SMTP_PORT=${{ secrets[format('{0}_MAIL_SMTP_PORT', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "MAIL_SMTP_USER=${{ secrets[format('{0}_MAIL_SMTP_USER', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "STORAGE_MINIO_ACCESS_KEY=${{ secrets[format('{0}_STORAGE_MINIO_ACCESS_KEY', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "STORAGE_MINIO_BUCKET_SHEETS=${{ secrets[format('{0}_STORAGE_MINIO_BUCKET_SHEETS', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "STORAGE_MINIO_BUCKET_UPLOADS=${{ secrets[format('{0}_STORAGE_MINIO_BUCKET_UPLOADS', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "STORAGE_MINIO_ENDPOINT=${{ secrets[format('{0}_STORAGE_MINIO_ENDPOINT', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "STORAGE_MINIO_SECRET_KEY=${{ secrets[format('{0}_STORAGE_MINIO_SECRET_KEY', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "STORAGE_MINIO_SECURE=${{ secrets[format('{0}_STORAGE_MINIO_SECURE', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "VECTOR_QDRANT_URL=${{ secrets[format('{0}_VECTOR_QDRANT_URL', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "VPS_HOST=${{ secrets[format('{0}_VPS_HOST', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "VPS_URL=${{ secrets[format('{0}_VPS_URL', env.PREFIX)] }}" >> $GITHUB_ENV
+          echo "VPS_USERNAME=${{ secrets[format('{0}_VPS_USERNAME', env.PREFIX)] }}" >> $GITHUB_ENV
+
+          # Shared secret
+          echo "VPS_PRIVATE_KEY=${{ secrets.VPS_PRIVATE_KEY }}" >> $GITHUB_ENV
 
       - name: Copy files to VPS
         uses: appleboy/scp-action@master
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
+          host: ${{ env.VPS_HOST }}
+          username: ${{ env.VPS_USERNAME }}
           port: 32222
-          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          key: ${{ env.VPS_PRIVATE_KEY }}
           source: "docker-compose.yml"
           target: "/home/datax-backend"
 
@@ -61,117 +109,14 @@ jobs:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
+          host: ${{ env.VPS_HOST }}
+          username: ${{ env.VPS_USERNAME }}
           port: 32222
-          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          key: ${{ env.VPS_PRIVATE_KEY }}
           script: |
             cd /home/datax-backend
-
-            # Select secrets based on branch
-            if [[ "${GITHUB_REF##*/}" == "main" ]]; then
-
-              echo "AUTH_JWT_SECRET=${{ secrets.PROD_AUTH_JWT_SECRET }}" > .env.datax
-              echo "AUTH_SESSION_SECRET=${{ secrets.PROD_AUTH_SESSION_SECRET }}" >> .env.datax
-
-              echo "DB_MONGO_URI=${{ secrets.PROD_DB_MONGO_URI }}" >> .env.datax
-              echo "DB_MONGO_NAME=${{ secrets.PROD_DB_MONGO_NAME }}" >> .env.datax
-              echo "DB_MONGO_COLLECTION_CHAT_SESSIONS=${{ secrets.PROD_DB_MONGO_COLLECTION_CHAT_SESSIONS }}" >> .env.datax
-              echo "DB_MONGO_COLLECTION_USERS=${{ secrets.PROD_DB_MONGO_COLLECTION_USERS }}" >> .env.datax
-
-              echo "STORAGE_MINIO_ENDPOINT=${{ secrets.PROD_STORAGE_MINIO_ENDPOINT }}" >> .env.datax
-              echo "STORAGE_MINIO_ACCESS_KEY=${{ secrets.PROD_STORAGE_MINIO_ACCESS_KEY }}" >> .env.datax
-              echo "STORAGE_MINIO_SECRET_KEY=${{ secrets.PROD_STORAGE_MINIO_SECRET_KEY }}" >> .env.datax
-              echo "STORAGE_MINIO_SECURE=${{ secrets.PROD_STORAGE_MINIO_SECURE }}" >> .env.datax
-              echo "STORAGE_MINIO_BUCKET_SHEETS=${{ secrets.PROD_STORAGE_MINIO_BUCKET_SHEETS }}" >> .env.datax
-              echo "STORAGE_MINIO_BUCKET_UPLOADS=${{ secrets.PROD_STORAGE_MINIO_BUCKET_UPLOADS }}" >> .env.datax
-
-              echo "AUTH_GOOGLE_CLIENT_ID=${{ secrets.PROD_AUTH_GOOGLE_CLIENT_ID }}" >> .env.datax
-              echo "AUTH_GOOGLE_CLIENT_SECRET=${{ secrets.PROD_AUTH_GOOGLE_CLIENT_SECRET }}" >> .env.datax
-              echo "AUTH_GOOGLE_PROJECT_ID=${{ secrets.PROD_AUTH_GOOGLE_PROJECT_ID }}" >> .env.datax
-              echo "AUTH_GOOGLE_URI_AUTH=${{ secrets.PROD_AUTH_GOOGLE_URI_AUTH }}" >> .env.datax
-              echo "AUTH_GOOGLE_URI_TOKEN=${{ secrets.PROD_AUTH_GOOGLE_URI_TOKEN }}" >> .env.datax
-              echo "AUTH_GOOGLE_URI_CERTS=${{ secrets.PROD_AUTH_GOOGLE_URI_CERTS }}" >> .env.datax
-
-              echo "MAIL_SMTP_HOST=${{ secrets.PROD_MAIL_SMTP_HOST }}" >> .env.datax
-              echo "MAIL_SMTP_PORT=${{ secrets.PROD_MAIL_SMTP_PORT }}" >> .env.datax
-              echo "MAIL_SMTP_USER=${{ secrets.PROD_MAIL_SMTP_USER }}" >> .env.datax
-              echo "MAIL_SMTP_PASSWORD=${{ secrets.PROD_MAIL_SMTP_PASSWORD }}" >> .env.datax
-              echo "MAIL_FROM_NAME=${{ secrets.PROD_MAIL_FROM_NAME }}" >> .env.datax
-              echo "MAIL_FROM_ADDRESS=${{ secrets.PROD_MAIL_FROM_ADDRESS }}" >> .env.datax
-
-              echo "LLM_OPENROUTER_API_BASE=${{ secrets.PROD_LLM_OPENROUTER_API_BASE }}" >> .env.datax
-              echo "LLM_OPENROUTER_API_KEY=${{ secrets.PROD_LLM_OPENROUTER_API_KEY }}" >> .env.datax
-
-              echo "EMBEDDING_HUGGINGFACE_API_KEY=${{ secrets.PROD_EMBEDDING_HUGGINGFACE_API_KEY }}" >> .env.datax
-              echo "EMBEDDING_HUGGINGFACE_MODEL=${{ secrets.PROD_EMBEDDING_HUGGINGFACE_MODEL }}" >> .env.datax
-
-              echo "VECTOR_QDRANT_URL=${{ secrets.PROD_VECTOR_QDRANT_URL }}" >> .env.datax
-
-              echo "FRONTEND_URL=${{ secrets.PROD_FRONTEND_URL }}" >> .env.datax
-              echo "VPS_URL=${{ secrets.PROD_VPS_URL }}" >> .env.datax
-
-              echo "VPS_HOST=${{ secrets.VPS_HOST }}" >> .env.datax
-              echo "VPS_USERNAME=${{ secrets.VPS_USERNAME }}" >> .env.datax
-              echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
-              echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
-
-            else
-              echo "AUTH_JWT_SECRET=${{ secrets.DEV_AUTH_JWT_SECRET }}" > .env.datax
-              echo "AUTH_SESSION_SECRET=${{ secrets.DEV_AUTH_SESSION_SECRET }}" >> .env.datax
-
-              echo "DB_MONGO_URI=${{ secrets.DEV_DB_MONGO_URI }}" >> .env.datax
-              echo "DB_MONGO_NAME=${{ secrets.DEV_DB_MONGO_NAME }}" >> .env.datax
-              echo "DB_MONGO_COLLECTION_CHAT_SESSIONS=${{ secrets.DEV_DB_MONGO_COLLECTION_CHAT_SESSIONS }}" >> .env.datax
-              echo "DB_MONGO_COLLECTION_USERS=${{ secrets.DEV_DB_MONGO_COLLECTION_USERS }}" >> .env.datax
-
-              echo "STORAGE_MINIO_ENDPOINT=${{ secrets.DEV_STORAGE_MINIO_ENDPOINT }}" >> .env.datax
-              echo "STORAGE_MINIO_ACCESS_KEY=${{ secrets.DEV_STORAGE_MINIO_ACCESS_KEY }}" >> .env.datax
-              echo "STORAGE_MINIO_SECRET_KEY=${{ secrets.DEV_STORAGE_MINIO_SECRET_KEY }}" >> .env.datax
-              echo "STORAGE_MINIO_SECURE=${{ secrets.DEV_STORAGE_MINIO_SECURE }}" >> .env.datax
-              echo "STORAGE_MINIO_BUCKET_SHEETS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_SHEETS }}" >> .env.datax
-              echo "STORAGE_MINIO_BUCKET_UPLOADS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_UPLOADS }}" >> .env.datax
-
-              echo "AUTH_GOOGLE_CLIENT_ID=${{ secrets.DEV_AUTH_GOOGLE_CLIENT_ID }}" >> .env.datax
-              echo "AUTH_GOOGLE_CLIENT_SECRET=${{ secrets.DEV_AUTH_GOOGLE_CLIENT_SECRET }}" >> .env.datax
-              echo "AUTH_GOOGLE_PROJECT_ID=${{ secrets.DEV_AUTH_GOOGLE_PROJECT_ID }}" >> .env.datax
-              echo "AUTH_GOOGLE_URI_AUTH=${{ secrets.DEV_AUTH_GOOGLE_URI_AUTH }}" >> .env.datax
-              echo "AUTH_GOOGLE_URI_TOKEN=${{ secrets.DEV_AUTH_GOOGLE_URI_TOKEN }}" >> .env.datax
-              echo "AUTH_GOOGLE_URI_CERTS=${{ secrets.DEV_AUTH_GOOGLE_URI_CERTS }}" >> .env.datax
-
-              echo "MAIL_SMTP_HOST=${{ secrets.DEV_MAIL_SMTP_HOST }}" >> .env.datax
-              echo "MAIL_SMTP_PORT=${{ secrets.DEV_MAIL_SMTP_PORT }}" >> .env.datax
-              echo "MAIL_SMTP_USER=${{ secrets.DEV_MAIL_SMTP_USER }}" >> .env.datax
-              echo "MAIL_SMTP_PASSWORD=${{ secrets.DEV_MAIL_SMTP_PASSWORD }}" >> .env.datax
-              echo "MAIL_FROM_NAME=${{ secrets.DEV_MAIL_FROM_NAME }}" >> .env.datax
-              echo "MAIL_FROM_ADDRESS=${{ secrets.DEV_MAIL_FROM_ADDRESS }}" >> .env.datax
-
-              echo "LLM_OPENROUTER_API_BASE=${{ secrets.DEV_LLM_OPENROUTER_API_BASE }}" >> .env.datax
-              echo "LLM_OPENROUTER_API_KEY=${{ secrets.DEV_LLM_OPENROUTER_API_KEY }}" >> .env.datax
-
-              echo "EMBEDDING_HUGGINGFACE_API_KEY=${{ secrets.DEV_EMBEDDING_HUGGINGFACE_API_KEY }}" >> .env.datax
-              echo "EMBEDDING_HUGGINGFACE_MODEL=${{ secrets.DEV_EMBEDDING_HUGGINGFACE_MODEL }}" >> .env.datax
-
-              echo "VECTOR_QDRANT_URL=${{ secrets.DEV_VECTOR_QDRANT_URL }}" >> .env.datax
-
-              echo "FRONTEND_URL=${{ secrets.DEV_FRONTEND_URL }}" >> .env.datax
-              echo "VPS_URL=${{ secrets.DEV_VPS_URL }}" >> .env.datax
-
-              echo "VPS_HOST=${{ secrets.VPS_HOST }}" >> .env.datax
-              echo "VPS_USERNAME=${{ secrets.VPS_USERNAME }}" >> .env.datax
-              echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
-              echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
-              
-            fi
-
-            # Stop and remove old container if exists
             docker rm -f datax-backend || true
-
-            # Remove old unused images
             docker image prune -af || true
-
-            # Recreate services
             docker compose -f docker-compose.yml pull
             docker compose -f docker-compose.yml up -d
-
-            echo " ✅ Deployment successful! Visit: http://62.60.198.4:8040"
+            echo "✅ Deployment successful!"
