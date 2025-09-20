@@ -2,11 +2,12 @@
 __pycache__/
 *.pyc
 *.pyo
+.venv
 
 # Env files
 *.env
-*.env.*     # مثل .env.local یا .env.datax
-
+*.env.*
+client_secret.json
 # Config / credentials
 *.json
 *.sh
@@ -21,3 +22,4 @@ __pycache__/
 # OS-specific
 .DS_Store
 Thumbs.db
+

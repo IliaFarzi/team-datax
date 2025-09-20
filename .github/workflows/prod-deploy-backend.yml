@@ -1,0 +1,58 @@
+name: Deploy to Production Server
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  prepare-config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Upload prod-services.yml as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-services
+          path: infrastructure/prod-services.yml
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: prepare-config
+    steps:
+      - name: Download prod-services.yml
+        uses: actions/download-artifact@v4
+        with:
+          name: prod-services
+          path: .
+
+      - name: Show file exists
+        run: ls -l prod-services.yml
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_VPS_HOST }}
+          username: ${{ secrets.PROD_VPS_USERNAME }}
+          key: ${{ secrets.PROD_VPS_PRIVATE_KEY }}
+          timeout: 300s
+          command_timeout: 600s
+          port: 32222
+          script: |
+            # write environment variables
+            echo "STORAGE_MINIO_USERNAME=${{ secrets.PROD_STORAGE_MINIO_USERNAME }}" > .services.env
+            echo "STORAGE_MINIO_PASSWORD=${{ secrets.PROD_STORAGE_MINIO_PASSWORD }}" >> .services.env
+
+            # copy over prod-services.yml
+            cat > prod-services.yml <<'EOF'
+            $(cat prod-services.yml)
+            EOF
+
+            # run docker compose
+            docker compose -f prod-services.yml --env-file .services.env pull
+            docker compose -f prod-services.yml --env-file .services.env up -d --no-build
+
+            # clean up old docker images/containers
+            docker system prune -a -f

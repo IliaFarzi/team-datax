@@ -18,7 +18,7 @@ jobs:
           host: ${{ secrets.PROD_VPS_HOST }}
           username: ${{ secrets.PROD_VPS_USERNAME }}
           port: 32222
-          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          key: ${{ secrets.PROD_VPS_KEY }}
           source: "docker-compose.yml"
           target: "/home/datax-backend"
       - name: Set up Docker Buildx
@@ -62,8 +62,8 @@ jobs:
             echo "DB_MONGO_COLLECTION_CHAT_SESSIONS=${{ secrets.PROD_DB_MONGO_COLLECTION_CHAT_SESSIONS }}" >> .env.datax
             echo "DB_MONGO_COLLECTION_USERS=${{ secrets.PROD_DB_MONGO_COLLECTION_USERS }}" >> .env.datax
             echo "STORAGE_MINIO_ENDPOINT=${{ secrets.PROD_STORAGE_MINIO_ENDPOINT }}" >> .env.datax
-            echo "STORAGE_MINIO_ACCESS_KEY=${{ secrets.PROD_STORAGE_MINIO_ACCESS_KEY }}" >> .env.datax
-            echo "STORAGE_MINIO_SECRET_KEY=${{ secrets.PROD_STORAGE_MINIO_SECRET_KEY }}" >> .env.datax
+            echo "PROD_STORAGE_MINIO_USERNAME=${{ secrets.PROD_STORAGE_MINIO_USERNAME }}" >> .env.datax
+            echo "PROD_STORAGE_MINIO_PASSWORD=${{ secrets.PROD_STORAGE_MINIO_PASSWORD }}" >> .env.datax
             echo "STORAGE_MINIO_SECURE=${{ secrets.PROD_STORAGE_MINIO_SECURE }}" >> .env.datax
             echo "STORAGE_MINIO_BUCKET_SHEETS=${{ secrets.PROD_STORAGE_MINIO_BUCKET_SHEETS }}" >> .env.datax
             echo "STORAGE_MINIO_BUCKET_UPLOADS=${{ secrets.PROD_STORAGE_MINIO_BUCKET_UPLOADS }}" >> .env.datax
