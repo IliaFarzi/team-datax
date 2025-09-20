@@ -51,7 +51,7 @@ jobs:
         with:
           host: ${{ secrets.DEV_VPS_HOST }}
           username: ${{ secrets.DEV_VPS_USERNAME }}
-          port: 32222
+          port: ${{ secrets.DEV_VPS_PORT }}
           key: ${{ secrets.DEV_VPS_KEY }}
           script: |
             cd /home/datax-backend
@@ -85,6 +85,7 @@ jobs:
             echo "VPS_URL=${{ secrets.DEV_VPS_URL }}" >> .env.datax
             echo "VPS_HOST=${{ secrets.DEV_VPS_HOST }}" >> .env.datax
             echo "VPS_USERNAME=${{ secrets.DEV_VPS_USERNAME }}" >> .env.datax
+            echo "VPS_PORT=${{ secrets.PROD_VPS_PORT }}" >> .env.datax
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
             echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
             docker rm -f datax-backend-dev || true
