@@ -7,10 +7,11 @@ on:
     paths:
       - 'api/**'
       - '.github/workflows/datax-deploy-backend-prod.yml'
+      - 'infrastructure/prod-services.yml'
 
 jobs:
   # ============================
-  # 1) Build & Deploy Backend
+  # 1) Build & Push Backend
   # ============================
   build_and_push:
     runs-on: ubuntu-latest
@@ -18,7 +19,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Copy files to VPS
+      - name: Copy backend docker-compose.yml to VPS
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.PROD_VPS_HOST }}
@@ -53,6 +54,9 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/datax-backend:prod
 
+  # ============================
+  # 2) Deploy Backend
+  # ============================
   deploy_backend:
     needs: build_and_push
     runs-on: ubuntu-latest
@@ -62,44 +66,38 @@ jobs:
         with:
           host: ${{ secrets.PROD_VPS_HOST }}
           username: ${{ secrets.PROD_VPS_USERNAME }}
-          port: ${{ secrets.PROD_VPS_PORT }}
+          port: 32222
           key: ${{ secrets.PROD_VPS_KEY }}
           script: |
             cd /home/datax-backend
 
-            # Write backend environment variables
+            # Write backend env
             echo "AUTH_JWT_SECRET=${{ secrets.PROD_AUTH_JWT_SECRET }}" > .env.datax
             echo "AUTH_SESSION_SECRET=${{ secrets.PROD_AUTH_SESSION_SECRET }}" >> .env.datax
-
             echo "DB_MONGO_URI=${{ secrets.PROD_DB_MONGO_URI }}" >> .env.datax
             echo "DB_MONGO_NAME=${{ secrets.PROD_DB_MONGO_NAME }}" >> .env.datax
             echo "DB_MONGO_COLLECTION_CHAT_SESSIONS=${{ secrets.PROD_DB_MONGO_COLLECTION_CHAT_SESSIONS }}" >> .env.datax
             echo "DB_MONGO_COLLECTION_USERS=${{ secrets.PROD_DB_MONGO_COLLECTION_USERS }}" >> .env.datax
-
             echo "STORAGE_MINIO_ENDPOINT=${{ secrets.PROD_STORAGE_MINIO_ENDPOINT }}" >> .env.datax
             echo "STORAGE_MINIO_USERNAME=${{ secrets.PROD_STORAGE_MINIO_USERNAME }}" >> .env.datax
             echo "STORAGE_MINIO_PASSWORD=${{ secrets.PROD_STORAGE_MINIO_PASSWORD }}" >> .env.datax
             echo "STORAGE_MINIO_SECURE=${{ secrets.PROD_STORAGE_MINIO_SECURE }}" >> .env.datax
             echo "STORAGE_MINIO_BUCKET_SHEETS=${{ secrets.PROD_STORAGE_MINIO_BUCKET_SHEETS }}" >> .env.datax
             echo "STORAGE_MINIO_BUCKET_UPLOADS=${{ secrets.PROD_STORAGE_MINIO_BUCKET_UPLOADS }}" >> .env.datax
-
             echo "AUTH_GOOGLE_CLIENT_ID=${{ secrets.PROD_AUTH_GOOGLE_CLIENT_ID }}" >> .env.datax
             echo "AUTH_GOOGLE_CLIENT_SECRET=${{ secrets.PROD_AUTH_GOOGLE_CLIENT_SECRET }}" >> .env.datax
             echo "AUTH_GOOGLE_PROJECT_ID=${{ secrets.PROD_AUTH_GOOGLE_PROJECT_ID }}" >> .env.datax
             echo "AUTH_GOOGLE_URI_AUTH=${{ secrets.PROD_AUTH_GOOGLE_URI_AUTH }}" >> .env.datax
             echo "AUTH_GOOGLE_URI_TOKEN=${{ secrets.PROD_AUTH_GOOGLE_URI_TOKEN }}" >> .env.datax
             echo "AUTH_GOOGLE_URI_CERTS=${{ secrets.PROD_AUTH_GOOGLE_URI_CERTS }}" >> .env.datax
-
             echo "MAIL_SMTP_HOST=${{ secrets.PROD_MAIL_SMTP_HOST }}" >> .env.datax
             echo "MAIL_SMTP_PORT=${{ secrets.PROD_MAIL_SMTP_PORT }}" >> .env.datax
             echo "MAIL_SMTP_USER=${{ secrets.PROD_MAIL_SMTP_USER }}" >> .env.datax
             echo "MAIL_SMTP_PASSWORD=${{ secrets.PROD_MAIL_SMTP_PASSWORD }}" >> .env.datax
             echo "MAIL_FROM_NAME=${{ secrets.PROD_MAIL_FROM_NAME }}" >> .env.datax
             echo "MAIL_FROM_ADDRESS=${{ secrets.PROD_MAIL_FROM_ADDRESS }}" >> .env.datax
-
             echo "LLM_OPENROUTER_API_BASE=${{ secrets.PROD_LLM_OPENROUTER_API_BASE }}" >> .env.datax
             echo "LLM_OPENROUTER_API_KEY=${{ secrets.PROD_LLM_OPENROUTER_API_KEY }}" >> .env.datax
-
             echo "FRONTEND_URL=${{ secrets.PROD_FRONTEND_URL }}" >> .env.datax
             echo "VPS_URL=${{ secrets.PROD_VPS_URL }}" >> .env.datax
             echo "VPS_HOST=${{ secrets.PROD_VPS_HOST }}" >> .env.datax
@@ -109,7 +107,7 @@ jobs:
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
             echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
 
-            # Clean up and run the backend
+            # Restart backend
             docker rm -f datax-backend-prod || true
             docker image prune -af || true
             docker compose -f docker-compose.yml pull
@@ -118,7 +116,7 @@ jobs:
             echo " ✅ Backend deployment successful! Visit: ${{ secrets.PROD_VPS_URL }}"
 
   # ============================
-  # 2) Deploy Services (MinIO)
+  # 3) Deploy Services (MinIO)
   # ============================
   deploy_services:
     runs-on: ubuntu-latest
@@ -127,20 +125,15 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Upload prod-services.yml as artifact
-        uses: actions/upload-artifact@v4
+      - name: Copy prod-services.yml to VPS
+        uses: appleboy/scp-action@master
         with:
-          name: prod-services
-          path: infrastructure/prod-services.yml
-
-      - name: Download prod-services.yml
-        uses: actions/download-artifact@v4
-        with:
-          name: prod-services
-          path: .
-
-      - name: Show file exists
-        run: ls -l prod-services.yml
+          host: ${{ secrets.PROD_VPS_HOST }}
+          username: ${{ secrets.PROD_VPS_USERNAME }}
+          key: ${{ secrets.PROD_VPS_KEY }}
+          port: 32222
+          source: "infrastructure/prod-services.yml"
+          target: "/home/datax-backend"
 
       - name: Deploy Services to VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -148,25 +141,20 @@ jobs:
           host: ${{ secrets.PROD_VPS_HOST }}
           username: ${{ secrets.PROD_VPS_USERNAME }}
           key: ${{ secrets.PROD_VPS_KEY }}
+          port: 32222
           timeout: 300s
           command_timeout: 600s
-          port: 32222
           script: |
+            cd /home/datax-backend
+
             # Write env for services
             echo "STORAGE_MINIO_USERNAME=${{ secrets.PROD_STORAGE_MINIO_USERNAME }}" > .services.env
             echo "STORAGE_MINIO_PASSWORD=${{ secrets.PROD_STORAGE_MINIO_PASSWORD }}" >> .services.env
             echo "STORAGE_MINIO_ENDPOINT=${{ secrets.PROD_STORAGE_MINIO_ENDPOINT }}" >> .services.env
 
-            # Copy prod-services.yml
-            cat > prod-services.yml <<'EOF'
-            $(cat prod-services.yml)
-            EOF
-
-            # Running services
+            # Run services
             docker compose -f prod-services.yml --env-file .services.env pull
             docker compose -f prod-services.yml --env-file .services.env up -d --no-build
 
-            # Cleanup
             docker system prune -a -f
-
             echo " ✅ Services deployed successfully!"
