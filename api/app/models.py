@@ -110,10 +110,10 @@ class RagQueryIn(BaseModel):
     question: str
     top_k: int = 5
 
-class ResetPasswordIn(BaseModel):
-    email: str
-    code: str
-    new_password: str
-
 class ForgotPasswordIn(BaseModel):
     email: EmailStr
+
+class ResetPasswordIn(BaseModel):
+    new_password: str  # email will be taken from token
+
+

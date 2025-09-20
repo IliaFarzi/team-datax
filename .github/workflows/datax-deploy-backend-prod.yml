@@ -105,6 +105,7 @@ jobs:
             echo "VPS_HOST=${{ secrets.PROD_VPS_HOST }}" >> .env.datax
             echo "VPS_USERNAME=${{ secrets.PROD_VPS_USERNAME }}" >> .env.datax
             echo "VPS_PORT=${{ secrets.PROD_VPS_PORT }}" >> .env.datax
+            echo "CORS_CONNECTION=${{ secrets.PROD_CORS_CONNECTION }}" >> .env.datax
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
             echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
 

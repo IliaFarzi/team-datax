@@ -16,7 +16,8 @@ load_dotenv(".env")
 
 AUTH_SESSION_SECRET = os.getenv("AUTH_SESSION_SECRET")
 VPS_URL=os.getenv('VPS_URL')
-FRONTEND_URL = os.getenv("FRONTEND_URL")  
+FRONTEND_URL = os.getenv("FRONTEND_URL")
+CORS_CONNECTION = os.getenv('CORS_CONNECTION') 
 
 app = FastAPI(title="DATAX", description="API for chat, file upload, Google Sheets integration, and data analysis")
 
@@ -33,7 +34,7 @@ app.add_middleware(
 # ✅ CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL, VPS_URL],
+    allow_origins=[FRONTEND_URL, VPS_URL, CORS_CONNECTION],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
