@@ -268,6 +268,7 @@ def request_password_reset(payload: ForgotPasswordIn):
         raise HTTPException(status_code=404, detail="User not found")
 
     reset_code = ''.join(secrets.choice('0123456789') for _ in range(6))
+    token = create_access_token({"sub": str(user["_id"])})
 
     users_collection.update_one(
         {"_id": user["_id"]},
@@ -280,7 +281,16 @@ def request_password_reset(payload: ForgotPasswordIn):
 
     send_reset_code(payload.email, reset_code)
 
-    return {"message": "Password reset code sent to your email"}
+    success = {
+        "message": "Password reset code sent to your email",
+        "token":token,
+        "email": user.get("email"),
+        "user_id": str(user["_id"]),
+        "reset_code": reset_code
+    }
+
+    print(success)
+    return success
 
 
 # =========================
@@ -291,7 +301,10 @@ def confirm_password_reset(
     payload: ResetPasswordIn,
     email: str = Depends(get_current_email_from_session)
 ):
+    
+    new_password = payload.new_password
     user = users_collection.find_one({"email": email})
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -325,7 +338,16 @@ def confirm_password_reset(
 
     # 6. Return token
     token = create_access_token({"sub": str(user["_id"])})
-    return {"message": "Password reset successful", "token": token}
+
+    success = {
+        "message": "Password reset successful",
+        "token":token,
+        "email": user.get("email"),
+        "user_id": str(user["_id"]),
+    "new_password":  new_password}
+    
+    print(success)
+    return success
 
 # ==========================================
 # Connect Google Sheets (redirect + callback combined)
