@@ -24,7 +24,7 @@ jobs:
         with:
           host: ${{ secrets.PROD_VPS_HOST }}
           username: ${{ secrets.PROD_VPS_USERNAME }}
-          port: 32222
+          port: ${{ secrets.PROD_VPS_PORT }}
           key: ${{ secrets.PROD_VPS_KEY }}
           source: "docker-compose.yml"
           target: "/home/datax-backend"
@@ -66,7 +66,7 @@ jobs:
         with:
           host: ${{ secrets.PROD_VPS_HOST }}
           username: ${{ secrets.PROD_VPS_USERNAME }}
-          port: 32222
+          port: ${{ secrets.PROD_VPS_PORT }}
           key: ${{ secrets.PROD_VPS_KEY }}
           script: |
             cd /home/datax-backend
@@ -131,7 +131,7 @@ jobs:
           host: ${{ secrets.PROD_VPS_HOST }}
           username: ${{ secrets.PROD_VPS_USERNAME }}
           key: ${{ secrets.PROD_VPS_KEY }}
-          port: 32222
+          port: ${{ secrets.PROD_VPS_PORT }}
           source: "infrastructure/prod-services.yml"
           target: "/home/datax-backend"
 
@@ -141,7 +141,7 @@ jobs:
           host: ${{ secrets.PROD_VPS_HOST }}
           username: ${{ secrets.PROD_VPS_USERNAME }}
           key: ${{ secrets.PROD_VPS_KEY }}
-          port: 32222
+          port: ${{ secrets.PROD_VPS_PORT }}
           timeout: 300s
           command_timeout: 600s
           script: |
