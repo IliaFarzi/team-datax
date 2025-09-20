@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 from api.app.database import ensure_mongo_collections
 from api.app.session_manager import sessions
 from api.app.ingesting_sheet import ingest_sheet
-from api.app.models import SignupIn, LoginIn, VerifyIn, ForgotPasswordIn, ResetPasswordIn,ResetPasswordIn, ExchangeCodeIn
+from api.app.models import SignupIn, LoginIn, VerifyIn, ForgotPasswordIn, ResetPasswordIn, ExchangeCodeIn
 from api.app.email_sender import send_otp, send_reset_code
 
 # =========================
@@ -259,7 +259,7 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
     return success
 
 # =========================
-# /auth/request_password_reset
+# /auth/reset-password/request
 # =========================
 @auth_router.post("/reset-password/request")
 def request_password_reset(payload: ForgotPasswordIn):
@@ -282,28 +282,48 @@ def request_password_reset(payload: ForgotPasswordIn):
 
     return {"message": "Password reset code sent to your email"}
 
+
 # =========================
-# /auth/confirm_password_reset
+# /auth/reset-password/confirm
 # =========================
 @auth_router.post("/reset-password/confirm")
-def confirm_password_reset(payload: ResetPasswordIn):
-    user = users_collection.find_one({"email": payload.email})
+def confirm_password_reset(
+    payload: ResetPasswordIn,
+    email: str = Depends(get_current_email_from_session)
+):
+    user = users_collection.find_one({"email": email})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # 1. Expiration check
     expires_at = user.get("reset_code_expires_at")
     if not expires_at or expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Reset code expired")
 
-    if not pwd_context.verify(payload.code, user.get("reset_code", "")):
+    # 2. Too many attempts
+    attempts = user.get("reset_attempts", 0)
+    if attempts >= 5:
+        raise HTTPException(status_code=403, detail="Too many failed attempts. Request a new code.")
+
+    # 3. Code verification
+    hashed_code = user.get("reset_code")
+    if not hashed_code or not pwd_context.verify(payload.new_password, hashed_code):
         users_collection.update_one({"_id": user["_id"]}, {"$inc": {"reset_attempts": 1}})
         raise HTTPException(status_code=400, detail="Invalid reset code")
 
+    # 4. Update password
     users_collection.update_one(
         {"_id": user["_id"]},
         {"$set": {"password_hash": hash_password(payload.new_password)}}
     )
 
+    # 5. Clear reset fields
+    users_collection.update_one(
+        {"_id": user["_id"]},
+        {"$unset": {"reset_code": "", "reset_code_expires_at": "", "reset_attempts": ""}}
+    )
+
+    # 6. Return token
     token = create_access_token({"sub": str(user["_id"])})
     return {"message": "Password reset successful", "token": token}
 
