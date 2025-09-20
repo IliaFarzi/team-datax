@@ -18,7 +18,7 @@ jobs:
           host: ${{ secrets.PROD_VPS_HOST }}
           username: ${{ secrets.PROD_VPS_USERNAME }}
           port: 32222
-          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          key: ${{ secrets.PROD_VPS_KEY }}
           source: "docker-compose.yml"
           target: "/home/datax-backend"
       - name: Set up Docker Buildx
