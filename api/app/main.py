@@ -15,7 +15,6 @@ from api.app.download_router import file_router
 load_dotenv(".env")
 
 AUTH_SESSION_SECRET = os.getenv("AUTH_SESSION_SECRET")
-VPS_HOST=os.getenv('VPS_HOST')
 VPS_URL=os.getenv('VPS_URL')
 FRONTEND_URL = os.getenv("FRONTEND_URL")  
 
