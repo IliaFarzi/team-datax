@@ -62,7 +62,7 @@ jobs:
         with:
           host: ${{ secrets.PROD_VPS_HOST }}
           username: ${{ secrets.PROD_VPS_USERNAME }}
-          port: ${{ secrets.DEV_VPS_PORT }}
+          port: ${{ secrets.PROD_VPS_PORT }}
           key: ${{ secrets.PROD_VPS_KEY }}
           script: |
             cd /home/datax-backend
