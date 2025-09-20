@@ -74,3 +74,24 @@ def send_otp(email, otp: str):
     """
 
     send_email(email, subject, body)
+
+
+def send_reset_code(email, code: str):
+    subject = "Password Reset Request – Datax Team"
+    body = f"""
+    <html>
+        <body style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
+            <h2 style="color: #2c3e50;">Password Reset Request</h2>
+            <p>We received a request to reset your password.</p>
+            <p>Your verification code is: 
+                <strong style="font-size: 1.2em; color: #e74c3c;">{code}</strong>
+            </p>
+            <p>Please use this code to complete your password reset.</p>
+            <p>If you did not request this, you can safely ignore this email.</p>
+            <p style="margin-top: 20px; color: #7f8c8d;">
+                Best regards,<br>Datax Team
+            </p>
+        </body>
+    </html>
+    """
+    send_email(email, subject, body)

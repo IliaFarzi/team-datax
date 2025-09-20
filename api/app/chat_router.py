@@ -45,12 +45,10 @@ def get_chat_history(session_id: str):
     
 
 @chat_router.post("/send_message")
-def send_message(message: UserMessage, request:Request):
-    
+def send_message(message: UserMessage, request: Request):
     session_id = message.session_id
     content = message.content
 
-    
     # If the session does not exist, create it
     if session_id not in sessions:
         _, sessions[session_id], _ = initialize_session(request)
@@ -58,14 +56,14 @@ def send_message(message: UserMessage, request:Request):
     session = sessions.get(session_id)
     if not session:
         raise HTTPException(status_code=403, detail="Invalid or expired session_id.")
-    
-    document = chat_sessions_collection.find_one({"session_id": session_id})
-    user_id = document["_id"]
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User not authenticated")
 
-    
-    # Continue the usual process
+    # Find the chat document to get the user_id
+    document = chat_sessions_collection.find_one({"session_id": session_id})
+    if not document:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+
+    user_id = document["_id"]
+
     agent = session["agent"]
 
     try:
@@ -79,7 +77,7 @@ def send_message(message: UserMessage, request:Request):
                     "thread_id": session_id,
                     "recursion_limit": 5,
                 },
-                callbacks=[callback], # 🔹 Added
+                callbacks=[callback],
             ),
         )
 
@@ -88,28 +86,28 @@ def send_message(message: UserMessage, request:Request):
         # ✅ Token usage
         input_tokens = output_tokens = total_tokens = 0
         usage = callback.usage_metadata
-
         if isinstance(usage, dict) and len(usage) > 0:
             stats = next(iter(usage.values()))
             input_tokens = stats.get("input_tokens", 0)
             output_tokens = stats.get("output_tokens", 0)
             total_tokens = stats.get("total_tokens", 0)
 
-        # ✅ Save stats in MongoDB
+        # ✅ Save usage users_collection
         users_collection.update_one(
             {"_id": ObjectId(user_id)},
             {
                 "$inc": {
-            "stats.total_messages": 1,
-            "stats.total_input_tokens": input_tokens,
-            "stats.total_output_tokens": output_tokens,
-            "stats.total_tokens": total_tokens},
-
-            "$set": {"stats.last_message_at": datetime.utcnow()},},
+                    "stats.total_messages": 1,
+                    "stats.total_input_tokens": input_tokens,
+                    "stats.total_output_tokens": output_tokens,
+                    "stats.total_tokens": total_tokens,
+                },
+                "$set": {"stats.last_message_at": datetime.utcnow()},
+            },
             upsert=True,
         )
 
-        # Save chat history
+        # ✅ # Save chat history in chat_sessions_collection
         save_message(session_id, "user", content)
         save_message(session_id, "assistant", output)
 
@@ -124,6 +122,7 @@ def send_message(message: UserMessage, request:Request):
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
             "total_tokens": total_tokens,
-            "messages": 1
-        }
+            "messages": 1,
+        },
     }
+
