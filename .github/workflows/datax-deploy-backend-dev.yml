@@ -52,7 +52,7 @@ jobs:
           host: ${{ secrets.DEV_VPS_HOST }}
           username: ${{ secrets.DEV_VPS_USERNAME }}
           port: 32222
-          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          key: ${{ secrets.DEV_VPS_KEY }}
           script: |
             cd /home/datax-backend
             echo "AUTH_JWT_SECRET=${{ secrets.DEV_AUTH_JWT_SECRET }}" > .env.datax
@@ -81,9 +81,6 @@ jobs:
             echo "MAIL_FROM_ADDRESS=${{ secrets.DEV_MAIL_FROM_ADDRESS }}" >> .env.datax
             echo "LLM_OPENROUTER_API_BASE=${{ secrets.DEV_LLM_OPENROUTER_API_BASE }}" >> .env.datax
             echo "LLM_OPENROUTER_API_KEY=${{ secrets.DEV_LLM_OPENROUTER_API_KEY }}" >> .env.datax
-            echo "EMBEDDING_HUGGINGFACE_API_KEY=${{ secrets.DEV_EMBEDDING_HUGGINGFACE_API_KEY }}" >> .env.datax
-            echo "EMBEDDING_HUGGINGFACE_MODEL=${{ secrets.DEV_EMBEDDING_HUGGINGFACE_MODEL }}" >> .env.datax
-            echo "VECTOR_QDRANT_URL=${{ secrets.DEV_VECTOR_QDRANT_URL }}" >> .env.datax
             echo "FRONTEND_URL=${{ secrets.DEV_FRONTEND_URL }}" >> .env.datax
             echo "VPS_URL=${{ secrets.DEV_VPS_URL }}" >> .env.datax
             echo "VPS_HOST=${{ secrets.DEV_VPS_HOST }}" >> .env.datax
