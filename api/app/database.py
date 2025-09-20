@@ -85,8 +85,8 @@ if DB_MONGO_URI and DB_MONGO_NAME and DB_MONGO_COLLECTION_CHAT_SESSIONS:
 # MinIO config
 # =========================
 STORAGE_MINIO_ENDPOINT = os.getenv("STORAGE_MINIO_ENDPOINT")
-STORAGE_MINIO_ACCESS_KEY = os.getenv("STORAGE_MINIO_ACCESS_KEY")
-STORAGE_MINIO_SECRET_KEY = os.getenv("STORAGE_MINIO_SECRET_KEY")
+STORAGE_MINIO_USERNAME = os.getenv("STORAGE_MINIO_USERNAME")
+STORAGE_MINIO_PASSWORD = os.getenv("STORAGE_MINIO_PASSWORD")
 STORAGE_MINIO_SECURE = os.getenv("STORAGE_MINIO_SECURE", "False").lower() == "true"
 STORAGE_MINIO_BUCKET_SHEETS = os.getenv("STORAGE_MINIO_BUCKET_SHEETS")
 STORAGE_MINIO_BUCKET_UPLOADS = os.getenv("STORAGE_MINIO_BUCKET_UPLOADS")
@@ -98,8 +98,8 @@ def get_minio_client() -> Minio:
     """Create and return a MinIO client."""
     client = Minio(
         endpoint=STORAGE_MINIO_ENDPOINT,
-        access_key=STORAGE_MINIO_ACCESS_KEY,
-        secret_key=STORAGE_MINIO_SECRET_KEY,
+        access_key=STORAGE_MINIO_USERNAME,
+        secret_key=STORAGE_MINIO_PASSWORD,
         secure=STORAGE_MINIO_SECURE,
     )
     return client
@@ -126,12 +126,12 @@ def minio_file_url(bucket: str, object_name: str) -> str:
 # =========================
 # Init check (runs once at import)
 # =========================
-if STORAGE_MINIO_ENDPOINT and STORAGE_MINIO_ACCESS_KEY and STORAGE_MINIO_SECRET_KEY and STORAGE_MINIO_BUCKET_SHEETS and STORAGE_MINIO_BUCKET_UPLOADS:
+if STORAGE_MINIO_ENDPOINT and STORAGE_MINIO_USERNAME and STORAGE_MINIO_PASSWORD and STORAGE_MINIO_BUCKET_SHEETS and STORAGE_MINIO_BUCKET_UPLOADS:
     client = get_minio_client()
     print("\n================ MinIO Connection Debug ================")
     print(f"📌 STORAGE_MINIO_ENDPOINT: {STORAGE_MINIO_ENDPOINT}")
-    print(f"📌 STORAGE_MINIO_ACCESS_KEY: {STORAGE_MINIO_ACCESS_KEY}")
-    print(f"📌 STORAGE_MINIO_SECRET_KEY: {STORAGE_MINIO_SECRET_KEY[:4]}***")
+    print(f"📌 STORAGE_MINIO_USERNAME: {STORAGE_MINIO_USERNAME}")
+    print(f"📌 STORAGE_MINIO_PASSWORD: {STORAGE_MINIO_PASSWORD[:4]}***")
     print(f"📌 STORAGE_MINIO_BUCKET_SHEETS: {STORAGE_MINIO_BUCKET_SHEETS}")
     print(f"📌 STORAGE_MINIO_BUCKET_UPLOADS: {STORAGE_MINIO_BUCKET_UPLOADS}")
     print(f"📌 STORAGE_MINIO_SECURE: {STORAGE_MINIO_SECURE}")
