@@ -19,14 +19,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Copy backend docker-compose.yml to VPS
+      - name: Copy backend docker-compose-prod.yml to VPS
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.PROD_VPS_HOST }}
           username: ${{ secrets.PROD_VPS_USERNAME }}
           port: ${{ secrets.PROD_VPS_PORT }}
           key: ${{ secrets.PROD_VPS_KEY }}
-          source: "docker-compose.yml"
+          source: "docker-compose-prod.yml"
           target: "/home/datax-backend"
 
       - name: Set up Docker Buildx
@@ -52,7 +52,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/datax-backend:prod
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/datax-backend-prod:latest
 
   # ============================
   # 2) Deploy Backend
@@ -117,8 +117,8 @@ jobs:
             # Restart backend
             docker rm -f datax-backend-prod || true
             docker image prune -af || true
-            docker compose -f docker-compose.yml pull
-            docker compose -f docker-compose.yml up -d
+            docker compose -f docker-compose-prod.yml pull
+            docker compose -f docker-compose-prod.yml up -d
 
             echo " ✅ Backend deployment successful! Visit: ${{ secrets.PROD_VPS_URL }}"
 
