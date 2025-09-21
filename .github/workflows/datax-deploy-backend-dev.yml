@@ -19,8 +19,8 @@ jobs:
           username: ${{ secrets.DEV_VPS_USERNAME }}
           port: 32222
           key: ${{ secrets.DEV_VPS_KEY }}
-          source: "./docker-compose-dev.yml"
-          target: "/home/datax-backend/docker-compose-dev.yml"
+          source: "docker-compose-dev.yml"
+          target: "/home/datax-backend"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Cache pip packages

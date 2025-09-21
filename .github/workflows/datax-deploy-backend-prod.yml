@@ -26,8 +26,8 @@ jobs:
           username: ${{ secrets.PROD_VPS_USERNAME }}
           port: ${{ secrets.PROD_VPS_PORT }}
           key: ${{ secrets.PROD_VPS_KEY }}
-          source: "./docker-compose-prod.yml"
-          target: "/home/datax-backend/docker-compose-prod.yml"
+          source: "docker-compose-prod.yml"
+          target: "/home/datax-backend"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
