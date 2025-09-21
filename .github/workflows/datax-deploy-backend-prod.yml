@@ -74,30 +74,37 @@ jobs:
             # Write backend env
             echo "AUTH_JWT_SECRET=${{ secrets.PROD_AUTH_JWT_SECRET }}" > .env.datax
             echo "AUTH_SESSION_SECRET=${{ secrets.PROD_AUTH_SESSION_SECRET }}" >> .env.datax
+            
             echo "DB_MONGO_URI=${{ secrets.PROD_DB_MONGO_URI }}" >> .env.datax
             echo "DB_MONGO_NAME=${{ secrets.PROD_DB_MONGO_NAME }}" >> .env.datax
             echo "DB_MONGO_COLLECTION_CHAT_SESSIONS=${{ secrets.PROD_DB_MONGO_COLLECTION_CHAT_SESSIONS }}" >> .env.datax
             echo "DB_MONGO_COLLECTION_USERS=${{ secrets.PROD_DB_MONGO_COLLECTION_USERS }}" >> .env.datax
+
             echo "STORAGE_MINIO_ENDPOINT=${{ secrets.PROD_STORAGE_MINIO_ENDPOINT }}" >> .env.datax
             echo "STORAGE_MINIO_USERNAME=${{ secrets.PROD_STORAGE_MINIO_USERNAME }}" >> .env.datax
             echo "STORAGE_MINIO_PASSWORD=${{ secrets.PROD_STORAGE_MINIO_PASSWORD }}" >> .env.datax
             echo "STORAGE_MINIO_SECURE=${{ secrets.PROD_STORAGE_MINIO_SECURE }}" >> .env.datax
             echo "STORAGE_MINIO_BUCKET_SHEETS=${{ secrets.PROD_STORAGE_MINIO_BUCKET_SHEETS }}" >> .env.datax
             echo "STORAGE_MINIO_BUCKET_UPLOADS=${{ secrets.PROD_STORAGE_MINIO_BUCKET_UPLOADS }}" >> .env.datax
+
             echo "AUTH_GOOGLE_CLIENT_ID=${{ secrets.PROD_AUTH_GOOGLE_CLIENT_ID }}" >> .env.datax
             echo "AUTH_GOOGLE_CLIENT_SECRET=${{ secrets.PROD_AUTH_GOOGLE_CLIENT_SECRET }}" >> .env.datax
             echo "AUTH_GOOGLE_PROJECT_ID=${{ secrets.PROD_AUTH_GOOGLE_PROJECT_ID }}" >> .env.datax
             echo "AUTH_GOOGLE_URI_AUTH=${{ secrets.PROD_AUTH_GOOGLE_URI_AUTH }}" >> .env.datax
             echo "AUTH_GOOGLE_URI_TOKEN=${{ secrets.PROD_AUTH_GOOGLE_URI_TOKEN }}" >> .env.datax
             echo "AUTH_GOOGLE_URI_CERTS=${{ secrets.PROD_AUTH_GOOGLE_URI_CERTS }}" >> .env.datax
+
             echo "MAIL_SMTP_HOST=${{ secrets.PROD_MAIL_SMTP_HOST }}" >> .env.datax
             echo "MAIL_SMTP_PORT=${{ secrets.PROD_MAIL_SMTP_PORT }}" >> .env.datax
             echo "MAIL_SMTP_USER=${{ secrets.PROD_MAIL_SMTP_USER }}" >> .env.datax
             echo "MAIL_SMTP_PASSWORD=${{ secrets.PROD_MAIL_SMTP_PASSWORD }}" >> .env.datax
             echo "MAIL_FROM_NAME=${{ secrets.PROD_MAIL_FROM_NAME }}" >> .env.datax
             echo "MAIL_FROM_ADDRESS=${{ secrets.PROD_MAIL_FROM_ADDRESS }}" >> .env.datax
+
             echo "LLM_OPENROUTER_API_BASE=${{ secrets.PROD_LLM_OPENROUTER_API_BASE }}" >> .env.datax
             echo "LLM_OPENROUTER_API_KEY=${{ secrets.PROD_LLM_OPENROUTER_API_KEY }}" >> .env.datax
+            echo "MODEL_NAME=${{ secrets.PROD_MODEL_NAME }}" >> .env.datax
+
             echo "FRONTEND_URL=${{ secrets.PROD_FRONTEND_URL }}" >> .env.datax
             echo "VPS_URL=${{ secrets.PROD_VPS_URL }}" >> .env.datax
             echo "VPS_HOST=${{ secrets.PROD_VPS_HOST }}" >> .env.datax
@@ -147,14 +154,10 @@ jobs:
           script: |
             cd /home/datax-backend
 
-            # Write env for services
-            echo "STORAGE_MINIO_USERNAME=${{ secrets.PROD_STORAGE_MINIO_USERNAME }}" > .services.env
-            echo "STORAGE_MINIO_PASSWORD=${{ secrets.PROD_STORAGE_MINIO_PASSWORD }}" >> .services.env
-            echo "STORAGE_MINIO_ENDPOINT=${{ secrets.PROD_STORAGE_MINIO_ENDPOINT }}" >> .services.env
-
-            # Run services
-            docker compose -f prod-services.yml --env-file .services.env pull
-            docker compose -f prod-services.yml --env-file .services.env up -d --no-build
+            # Run services using same env file as backend
+            docker compose -f prod-services.yml --env-file .env.datax pull
+            docker compose -f prod-services.yml --env-file .env.datax up -d --no-build
 
             docker system prune -a -f
             echo " ✅ Services deployed successfully!"
+
