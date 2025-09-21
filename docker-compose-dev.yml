@@ -1,6 +1,6 @@
 services:
   datax-backend:
-    image: heidarym78/datax-backend:latest
+    image: heidarym78/datax-backend-dev:latest
     container_name: datax-backend
     restart: always
     ports:
