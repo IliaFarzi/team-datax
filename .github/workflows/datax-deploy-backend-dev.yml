@@ -17,8 +17,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Copy files to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.DEV_VPS_HOST }}
+          username: ${{ secrets.DEV_VPS_USERNAME }}
+          port: 32222
+          key: ${{ secrets.DEV_VPS_KEY }}
+          source: "docker-compose.yml"
+          target: "/home/datax-backend"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -42,22 +60,6 @@ jobs:
     needs: build_and_push
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code (for compose file)
-        uses: actions/checkout@v3
-
-      - name: Debug check compose file
-        run: ls -l 
-
-      - name: Copy docker-compose-dev.yml to VPS
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.DEV_VPS_HOST }}
-          username: ${{ secrets.DEV_VPS_USERNAME }}
-          port: ${{ secrets.DEV_VPS_PORT }}
-          key: ${{ secrets.DEV_VPS_KEY }}
-          source: "docker-compose-dev.yml"
-          target: "/home/datax-backend"
-
       - name: Deploy to VPS
         uses: appleboy/ssh-action@master
         with:
@@ -109,8 +111,13 @@ jobs:
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
             echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
 
+            # Stop and remove old container if exists
             docker rm -f datax-backend-dev || true
+
+            # Remove old unused images
             docker image prune -af || true
-            docker compose -f docker-compose-dev.yml pull --ignore-pull-failures
-            docker compose -f docker-compose-dev.yml up -d --force-recreate
+
+            docker compose -f docker-compose-dev.yml pull 
+            docker compose -f docker-compose-dev.yml up -d 
+
             echo "✅ Deployment successful! Visit: ${{ secrets.DEV_VPS_URL }}"
