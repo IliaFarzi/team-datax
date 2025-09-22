@@ -1,3 +1,5 @@
+# .github/workfows/datax-deploy-backend-dev.yml
+
 name: datax-deploy-backend-dev
 on:
   push:
@@ -14,23 +16,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Upload docker-compose-dev.yml as artifact
-      - name: Upload docker-compose artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-compose-dev
-          path: docker-compose-dev.yml
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-
-      - name: Cache pip packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -46,18 +33,14 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/datax-backend-dev:latest
 
+      - name: Show built image digest
+        run: docker inspect --format='{{index .RepoDigests 0}}' ${{ secrets.DOCKERHUB_USERNAME }}/datax-backend-dev:latest
+
   deploy:
     needs: build_and_push
     runs-on: ubuntu-latest
     steps:
-      # Download artifact (docker-compose-dev.yml)
-      - name: Download docker-compose artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: docker-compose-dev
-          path: .
-
-      - name: Copy docker-compose to VPS
+      - name: Copy docker-compose-dev.yml to VPS
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.DEV_VPS_HOST }}
@@ -76,46 +59,50 @@ jobs:
           key: ${{ secrets.DEV_VPS_KEY }}
           script: |
             cd /home/datax-backend
-            echo "AUTH_JWT_SECRET=${{ secrets.DEV_AUTH_JWT_SECRET }}" > .env.datax
-            echo "AUTH_SESSION_SECRET=${{ secrets.DEV_AUTH_SESSION_SECRET }}" >> .env.datax
-            echo "DB_MONGO_URI=${{ secrets.DEV_DB_MONGO_URI }}" >> .env.datax
-            echo "DB_MONGO_NAME=${{ secrets.DEV_DB_MONGO_NAME }}" >> .env.datax
-            echo "DB_MONGO_COLLECTION_CHAT_SESSIONS=${{ secrets.DEV_DB_MONGO_COLLECTION_CHAT_SESSIONS }}" >> .env.datax
-            echo "DB_MONGO_COLLECTION_USERS=${{ secrets.DEV_DB_MONGO_COLLECTION_USERS }}" >> .env.datax
-            echo "STORAGE_MINIO_ENDPOINT=${{ secrets.DEV_STORAGE_MINIO_ENDPOINT }}" >> .env.datax
-            echo "STORAGE_MINIO_ACCESS_KEY=${{ secrets.DEV_STORAGE_MINIO_ACCESS_KEY }}" >> .env.datax
-            echo "STORAGE_MINIO_SECRET_KEY=${{ secrets.DEV_STORAGE_MINIO_SECRET_KEY }}" >> .env.datax
-            echo "STORAGE_MINIO_SECURE=${{ secrets.DEV_STORAGE_MINIO_SECURE }}" >> .env.datax
-            echo "STORAGE_MINIO_BUCKET_SHEETS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_SHEETS }}" >> .env.datax
-            echo "STORAGE_MINIO_BUCKET_UPLOADS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_UPLOADS }}" >> .env.datax
-            echo "AUTH_GOOGLE_CLIENT_ID=${{ secrets.DEV_AUTH_GOOGLE_CLIENT_ID }}" >> .env.datax
-            echo "AUTH_GOOGLE_CLIENT_SECRET=${{ secrets.DEV_AUTH_GOOGLE_CLIENT_SECRET }}" >> .env.datax
-            echo "AUTH_GOOGLE_PROJECT_ID=${{ secrets.DEV_AUTH_GOOGLE_PROJECT_ID }}" >> .env.datax
-            echo "AUTH_GOOGLE_URI_AUTH=${{ secrets.DEV_AUTH_GOOGLE_URI_AUTH }}" >> .env.datax
-            echo "AUTH_GOOGLE_URI_TOKEN=${{ secrets.DEV_AUTH_GOOGLE_URI_TOKEN }}" >> .env.datax
-            echo "AUTH_GOOGLE_URI_CERTS=${{ secrets.DEV_AUTH_GOOGLE_URI_CERTS }}" >> .env.datax
-            echo "MAIL_SMTP_HOST=${{ secrets.DEV_MAIL_SMTP_HOST }}" >> .env.datax
-            echo "MAIL_SMTP_PORT=${{ secrets.DEV_MAIL_SMTP_PORT }}" >> .env.datax
-            echo "MAIL_SMTP_USER=${{ secrets.DEV_MAIL_SMTP_USER }}" >> .env.datax
-            echo "MAIL_SMTP_PASSWORD=${{ secrets.DEV_MAIL_SMTP_PASSWORD }}" >> .env.datax
-            echo "MAIL_FROM_NAME=${{ secrets.DEV_MAIL_FROM_NAME }}" >> .env.datax
-            echo "MAIL_FROM_ADDRESS=${{ secrets.DEV_MAIL_FROM_ADDRESS }}" >> .env.datax
-            echo "LLM_OPENROUTER_API_BASE=${{ secrets.DEV_LLM_OPENROUTER_API_BASE }}" >> .env.datax
-            echo "LLM_OPENROUTER_API_KEY=${{ secrets.DEV_LLM_OPENROUTER_API_KEY }}" >> .env.datax
-            echo "MODEL_NAME=${{ secrets.DEV_MODEL_NAME }}" >> .env.datax
-            echo "FRONTEND_URL=${{ secrets.DEV_FRONTEND_URL }}" >> .env.datax
-            echo "VPS_URL=${{ secrets.DEV_VPS_URL }}" >> .env.datax
-            echo "VPS_HOST=${{ secrets.DEV_VPS_HOST }}" >> .env.datax
-            echo "VPS_USERNAME=${{ secrets.DEV_VPS_USERNAME }}" >> .env.datax
-            echo "VPS_PORT=${{ secrets.DEV_VPS_PORT }}" >> .env.datax
-            echo "CORS_CONNECTION=${{ secrets.DEV_CORS_CONNECTION }}" >> .env.datax
-            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
-            echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
-            
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
+            # Env file
+            cat > .env.datax <<EOL
+            AUTH_JWT_SECRET=${{ secrets.DEV_AUTH_JWT_SECRET }}
+            AUTH_SESSION_SECRET=${{ secrets.DEV_AUTH_SESSION_SECRET }}
+
+            DB_MONGO_URI=${{ secrets.DEV_DB_MONGO_URI }}
+            DB_MONGO_NAME=${{ secrets.DEV_DB_MONGO_NAME }}
+            DB_MONGO_COLLECTION_CHAT_SESSIONS=${{ secrets.DEV_DB_MONGO_COLLECTION_CHAT_SESSIONS }}
+            DB_MONGO_COLLECTION_USERS=${{ secrets.DEV_DB_MONGO_COLLECTION_USERS }}
+
+            STORAGE_MINIO_ENDPOINT=${{ secrets.DEV_STORAGE_MINIO_ENDPOINT }}
+            STORAGE_MINIO_USERNAME=${{ secrets.DEV_STORAGE_MINIO_USERNAME }}
+            STORAGE_MINIO_PASSWORD=${{ secrets.DEV_STORAGE_MINIO_PASSWORD }}
+            STORAGE_MINIO_SECURE=${{ secrets.DEV_STORAGE_MINIO_SECURE }}
+            STORAGE_MINIO_BUCKET_SHEETS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_SHEETS }}
+            STORAGE_MINIO_BUCKET_UPLOADS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_UPLOADS }}
+
+            AUTH_GOOGLE_CLIENT_ID=${{ secrets.DEV_AUTH_GOOGLE_CLIENT_ID }}
+            AUTH_GOOGLE_CLIENT_SECRET=${{ secrets.DEV_AUTH_GOOGLE_CLIENT_SECRET }}
+            AUTH_GOOGLE_PROJECT_ID=${{ secrets.DEV_AUTH_GOOGLE_PROJECT_ID }}
+            AUTH_GOOGLE_URI_AUTH=${{ secrets.DEV_AUTH_GOOGLE_URI_AUTH }}
+            AUTH_GOOGLE_URI_TOKEN=${{ secrets.DEV_AUTH_GOOGLE_URI_TOKEN }}
+            AUTH_GOOGLE_URI_CERTS=${{ secrets.DEV_AUTH_GOOGLE_URI_CERTS }}
+
+            MAIL_SMTP_HOST=${{ secrets.DEV_MAIL_SMTP_HOST }}
+            MAIL_SMTP_PORT=${{ secrets.DEV_MAIL_SMTP_PORT }}
+            MAIL_SMTP_USER=${{ secrets.DEV_MAIL_SMTP_USER }}
+            MAIL_SMTP_PASSWORD=${{ secrets.DEV_MAIL_SMTP_PASSWORD }}
+            MAIL_FROM_NAME=${{ secrets.DEV_MAIL_FROM_NAME }}
+            MAIL_FROM_ADDRESS=${{ secrets.DEV_MAIL_FROM_ADDRESS }}
+
+            LLM_OPENROUTER_API_BASE=${{ secrets.DEV_LLM_OPENROUTER_API_BASE }}
+            LLM_OPENROUTER_API_KEY=${{ secrets.DEV_LLM_OPENROUTER_API_KEY }}
+            MODEL_NAME=${{ secrets.DEV_MODEL_NAME }}
+
+            FRONTEND_URL=${{ secrets.DEV_FRONTEND_URL }}
+            VPS_URL=${{ secrets.DEV_VPS_URL }}
+            CORS_CONNECTION=${{ secrets.DEV_CORS_CONNECTION }}
+            EOL
+
+            # Restart backend
             docker rm -f datax-backend || true
             docker image prune -af || true
-            docker compose -f docker-compose-dev.yml pull
-            docker compose -f docker-compose-dev.yml up -d
-            echo " ✅ Deployment successful! Visit: ${{ secrets.DEV_VPS_URL }}"
+            docker compose -f docker-compose-dev.yml pull --ignore-pull-failures
+            docker compose -f docker-compose-dev.yml up -d --force-recreate
+            echo "✅ Dev deployment successful at ${{ secrets.DEV_VPS_URL }}"

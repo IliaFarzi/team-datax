@@ -1,16 +1,18 @@
+#docker-compose-dev.yml
+
 services:
   datax-backend:
     image: heidarym78/datax-backend-dev:latest
-    container_name: datax-backend
+    container_name: datax-backend-dev
     restart: always
     ports:
       - "8040:8040"
     env_file:
       - .env.datax
     networks:
-      - shared-net
+      - dev-net
 
 networks:
-  shared-net:
-    name: multi-team-dev-deployment_shared-net
+  dev-net:
+    name: multi-team-dev-deployment_dev-net
     external: true

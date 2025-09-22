@@ -113,7 +113,11 @@ class RagQueryIn(BaseModel):
 class ForgotPasswordIn(BaseModel):
     email: EmailStr
 
-class ResetPasswordIn(BaseModel):
+class CheckCodeIn(BaseModel):
+    code: str
+    
+class ConfirmPasswordIn(BaseModel):
     new_password: str  # email will be taken from token
+
 
 
