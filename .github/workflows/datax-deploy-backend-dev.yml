@@ -7,7 +7,8 @@ on:
     paths:
       - 'api/**'
       - '.github/workflows/datax-deploy-backend-dev.yml'
-      - 'docker-compose-dev.yml'
+      - 'team-datax/docker-compose-dev.yml'
+
 
 jobs:
   build_and_push:
@@ -48,7 +49,7 @@ jobs:
           username: ${{ secrets.DEV_VPS_USERNAME }}
           port: ${{ secrets.DEV_VPS_PORT }}
           key: ${{ secrets.DEV_VPS_KEY }}
-          source: "docker-compose-dev.yml"
+          source: "team-datax/docker-compose-dev.yml"
           target: "/home/datax-backend"
 
       - name: Deploy to VPS
@@ -102,7 +103,7 @@ jobs:
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
             echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
             
-            docker rm -f datax-backend || true
+            docker rm -f datax-backend-dev || true
             docker image prune -af || true
             docker compose -f docker-compose-dev.yml pull --ignore-pull-failures
             docker compose -f docker-compose-dev.yml up -d --force-recreate
