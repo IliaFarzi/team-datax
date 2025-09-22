@@ -1,5 +1,4 @@
 # .github/workfows/datax-deploy-backend-dev.yml
-
 name: datax-deploy-backend-dev
 on:
   push:
@@ -26,6 +25,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push Docker image
+        id: build
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -34,7 +34,7 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/datax-backend-dev:latest
 
       - name: Show built image digest
-        run: docker inspect --format='{{index .RepoDigests 0}}' ${{ secrets.DOCKERHUB_USERNAME }}/datax-backend-dev:latest
+        run: echo "✅ Dev image digest = ${{ steps.build.outputs.digest }}"
 
   deploy:
     needs: build_and_push
@@ -59,47 +59,6 @@ jobs:
           key: ${{ secrets.DEV_VPS_KEY }}
           script: |
             cd /home/datax-backend
-
-            # Env file
-            cat > .env.datax <<EOL
-            AUTH_JWT_SECRET=${{ secrets.DEV_AUTH_JWT_SECRET }}
-            AUTH_SESSION_SECRET=${{ secrets.DEV_AUTH_SESSION_SECRET }}
-
-            DB_MONGO_URI=${{ secrets.DEV_DB_MONGO_URI }}
-            DB_MONGO_NAME=${{ secrets.DEV_DB_MONGO_NAME }}
-            DB_MONGO_COLLECTION_CHAT_SESSIONS=${{ secrets.DEV_DB_MONGO_COLLECTION_CHAT_SESSIONS }}
-            DB_MONGO_COLLECTION_USERS=${{ secrets.DEV_DB_MONGO_COLLECTION_USERS }}
-
-            STORAGE_MINIO_ENDPOINT=${{ secrets.DEV_STORAGE_MINIO_ENDPOINT }}
-            STORAGE_MINIO_USERNAME=${{ secrets.DEV_STORAGE_MINIO_USERNAME }}
-            STORAGE_MINIO_PASSWORD=${{ secrets.DEV_STORAGE_MINIO_PASSWORD }}
-            STORAGE_MINIO_SECURE=${{ secrets.DEV_STORAGE_MINIO_SECURE }}
-            STORAGE_MINIO_BUCKET_SHEETS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_SHEETS }}
-            STORAGE_MINIO_BUCKET_UPLOADS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_UPLOADS }}
-
-            AUTH_GOOGLE_CLIENT_ID=${{ secrets.DEV_AUTH_GOOGLE_CLIENT_ID }}
-            AUTH_GOOGLE_CLIENT_SECRET=${{ secrets.DEV_AUTH_GOOGLE_CLIENT_SECRET }}
-            AUTH_GOOGLE_PROJECT_ID=${{ secrets.DEV_AUTH_GOOGLE_PROJECT_ID }}
-            AUTH_GOOGLE_URI_AUTH=${{ secrets.DEV_AUTH_GOOGLE_URI_AUTH }}
-            AUTH_GOOGLE_URI_TOKEN=${{ secrets.DEV_AUTH_GOOGLE_URI_TOKEN }}
-            AUTH_GOOGLE_URI_CERTS=${{ secrets.DEV_AUTH_GOOGLE_URI_CERTS }}
-
-            MAIL_SMTP_HOST=${{ secrets.DEV_MAIL_SMTP_HOST }}
-            MAIL_SMTP_PORT=${{ secrets.DEV_MAIL_SMTP_PORT }}
-            MAIL_SMTP_USER=${{ secrets.DEV_MAIL_SMTP_USER }}
-            MAIL_SMTP_PASSWORD=${{ secrets.DEV_MAIL_SMTP_PASSWORD }}
-            MAIL_FROM_NAME=${{ secrets.DEV_MAIL_FROM_NAME }}
-            MAIL_FROM_ADDRESS=${{ secrets.DEV_MAIL_FROM_ADDRESS }}
-
-            LLM_OPENROUTER_API_BASE=${{ secrets.DEV_LLM_OPENROUTER_API_BASE }}
-            LLM_OPENROUTER_API_KEY=${{ secrets.DEV_LLM_OPENROUTER_API_KEY }}
-            MODEL_NAME=${{ secrets.DEV_MODEL_NAME }}
-
-            FRONTEND_URL=${{ secrets.DEV_FRONTEND_URL }}
-            VPS_URL=${{ secrets.DEV_VPS_URL }}
-            CORS_CONNECTION=${{ secrets.DEV_CORS_CONNECTION }}
-            EOL
-
             # Restart backend
             docker rm -f datax-backend || true
             docker image prune -af || true
