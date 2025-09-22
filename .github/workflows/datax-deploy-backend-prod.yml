@@ -134,6 +134,9 @@ jobs:
             echo "CORS_CONNECTION=${{ secrets.PROD_CORS_CONNECTION }}" >> .env.datax
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
             echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
+            
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
 
             # Restart backend
             docker rm -f datax-backend || true
@@ -178,6 +181,8 @@ jobs:
           command_timeout: 600s
           script: |
             cd /home/datax-backend
+            
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
             # Run services using same env file as backend
             docker compose -f prod-services.yml --env-file .env.datax pull

@@ -111,6 +111,8 @@ jobs:
             echo "CORS_CONNECTION=${{ secrets.DEV_CORS_CONNECTION }}" >> .env.datax
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
             echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
+            
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
             docker rm -f datax-backend || true
             docker image prune -af || true
