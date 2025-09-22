@@ -21,14 +21,14 @@ jobs:
 
       # Upload backend docker-compose-prod.yml as artifact
       - name: Upload backend compose artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: docker-compose-prod
           path: docker-compose-prod.yml
 
       # Upload services compose as artifact
       - name: Upload services compose artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: prod-services
           path: infrastructure/prod-services.yml
@@ -67,7 +67,7 @@ jobs:
     steps:
       # Download backend compose artifact
       - name: Download backend compose artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: docker-compose-prod
           path: .
@@ -152,7 +152,7 @@ jobs:
     steps:
       # Download services artifact
       - name: Download services compose artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: prod-services
           path: .

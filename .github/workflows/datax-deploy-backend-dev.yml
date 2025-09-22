@@ -16,7 +16,7 @@ jobs:
 
       # Upload docker-compose-dev.yml as artifact
       - name: Upload docker-compose artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: docker-compose-dev
           path: docker-compose-dev.yml
@@ -52,7 +52,7 @@ jobs:
     steps:
       # Download artifact (docker-compose-dev.yml)
       - name: Download docker-compose artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: docker-compose-dev
           path: .
