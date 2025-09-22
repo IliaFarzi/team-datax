@@ -103,7 +103,7 @@ jobs:
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
             echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
             
-            docker rm -f datax-backend || true
+            docker rm -f datax-backend-dev || true
             docker image prune -af || true
             docker compose -f docker-compose-dev.yml pull --ignore-pull-failures
             docker compose -f docker-compose-dev.yml up -d --force-recreate

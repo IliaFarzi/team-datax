@@ -107,7 +107,7 @@ jobs:
             echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
 
             # Restart backend
-            docker rm -f datax-backend || true
+            docker rm -f datax-backend-prod || true
             docker image prune -af || true
             docker compose -f docker-compose-prod.yml pull --ignore-pull-failures
             docker compose -f docker-compose-prod.yml up -d --force-recreate
