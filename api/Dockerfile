@@ -16,7 +16,7 @@ WORKDIR /app
 RUN pip install --upgrade pip
 
 # Copy requirements.txt first (to leverage Docker cache)
-COPY requirements.txt .
+COPY api/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -28,5 +28,4 @@ COPY api/ .
 EXPOSE 8040
 
 # Run the FastAPI app using uvicorn
-# Adjust the module path based on your directory structure
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8040"]
