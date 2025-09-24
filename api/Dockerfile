@@ -22,7 +22,7 @@ COPY api/requirements.txt .
 RUN pip install --no-cache-dir -r api/requirements.txt
 
 # Copy the application code from the api directory
-COPY . .
+COPY api/ .
 
 # Expose port 8040
 EXPOSE 8040
