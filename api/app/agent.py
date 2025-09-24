@@ -12,13 +12,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from api.app.sheet_tools import (
+from .sheet_tools import (
     list_google_sheets,
     preview_google_sheet,
     load_google_sheet_to_dataframe,
     analyze_google_sheet
 )
-from api.app.upload_router import analyze_uploaded_file, list_uploaded_files
+from .upload_router import analyze_uploaded_file, list_uploaded_files
 
 
 def make_wrapped_tools(request: Request):

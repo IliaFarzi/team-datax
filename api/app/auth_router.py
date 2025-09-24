@@ -20,11 +20,11 @@ from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
 
-from api.app.database import ensure_mongo_collections
-from api.app.session_manager import sessions
-from api.app.ingesting_sheet import ingest_sheet
-from api.app.models import SignupIn, LoginIn, VerifyIn, ForgotPasswordIn, CheckCodeIn, ConfirmPasswordIn, ExchangeCodeIn
-from api.app.email_sender import send_otp, send_reset_code
+from .database import ensure_mongo_collections
+from .session_manager import sessions
+from .ingesting_sheet import ingest_sheet
+from .models import SignupIn, LoginIn, VerifyIn, ForgotPasswordIn, CheckCodeIn, ConfirmPasswordIn, ExchangeCodeIn
+from .email_sender import send_otp, send_reset_code
 
 # =========================
 # Environment & constants
@@ -143,7 +143,7 @@ def get_current_email_from_session(user: Dict[str, Any] = Depends(get_current_us
 
 @auth_router.post("/signup")
 async def signup(payload: SignupIn):
-    from api.app.agent import get_agent  # Lazy import
+    from .agent import get_agent  # Lazy import
     existing = users_collection.find_one({"email": payload.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -182,7 +182,7 @@ async def signup(payload: SignupIn):
 
 @auth_router.post("/login")
 def login(payload: LoginIn):
-    from api.app.agent import get_agent  # Lazy import
+    from .agent import get_agent  # Lazy import
     # Find user by email
     user = users_collection.find_one({"email": payload.email})
     if not user or not verify_password(payload.password, user.get("password_hash", "")):

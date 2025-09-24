@@ -10,9 +10,9 @@ from bson import ObjectId
 from langchain_core.callbacks import UsageMetadataCallbackHandler
 from langchain_core.runnables import RunnableConfig
 
-from api.app.models import UserMessage
-from api.app.database import ensure_mongo_collections
-from api.app.session_manager import sessions, initialize_session
+from .models import UserMessage
+from .database import ensure_mongo_collections
+from .session_manager import sessions, initialize_session
 
 client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
 

@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from minio.error import S3Error
-from api.app.database import ensure_mongo_collections, get_minio_client, ensure_bucket, minio_file_url
+from .database import ensure_mongo_collections, get_minio_client, ensure_bucket, minio_file_url
 
 logger = logging.getLogger(__name__)
 
