@@ -21,8 +21,9 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the application code from the api directory
-COPY . .
+
+# Copy the application code into the container
+COPY ./api /app
 
 # Expose port 8040
 EXPOSE 8040
