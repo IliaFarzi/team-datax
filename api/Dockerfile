@@ -16,13 +16,13 @@ WORKDIR /app
 RUN pip install --upgrade pip
 
 # Copy requirements.txt first (to leverage Docker cache)
-COPY api/requirements.txt .
+COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code from the api directory
-COPY api/ .
+COPY . .
 
 # Expose port 8040
 EXPOSE 8040
