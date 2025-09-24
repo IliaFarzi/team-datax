@@ -102,7 +102,6 @@ jobs:
             # File checks
             echo "🔍 Checking files on VPS..."
             sudo ls -l ./docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not found"; exit 1; }
-            sudo ls -l .env.datax || { echo "ERROR: .env.datax not found"; exit 1; }
             sudo cat docker-compose-dev.yml
             echo "✅ Files exist"
 
