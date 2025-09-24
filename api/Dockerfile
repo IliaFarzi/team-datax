@@ -1,5 +1,3 @@
-#api\Dockerfile
-
 # Use official Python 3.12 slim image as base
 FROM python:3.12-slim
 
@@ -22,7 +20,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy all code into /api
-COPY . /api.app
+COPY . .
 
 # Expose port 8040
 EXPOSE 8040
