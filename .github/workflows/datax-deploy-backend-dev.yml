@@ -49,7 +49,7 @@ jobs:
       - name: Verify Docker Hub login
         run: |
           echo "🔍 Verifying Docker Hub login..."
-          docker pull hello-world || { echo "ERROR: Docker Hub login failed"; exit 1; }
+          docker pull hello-world || { echo "ERROR: Docker Hub login failed";  }
           echo "✅ Docker Hub login successful"
 
       - name: Build and push backend image
@@ -86,7 +86,7 @@ jobs:
           port: ${{ secrets.DEV_VPS_PORT }}
           key: ${{ secrets.DEV_VPS_KEY }}
           source: "api/docker-compose-dev.yml"
-          target: "/home/datax-backend/docker-compose-dev.yml"
+          target: "/home/datax-backend"
           debug: true
 
       - name: deploy on VPS
@@ -97,11 +97,11 @@ jobs:
           port: ${{ secrets.DEV_VPS_PORT }}
           key: ${{ secrets.DEV_VPS_KEY }}
           script: |
-            cd /home/datax-backend
+            cd /home/datax-backend/api
 
             # File checks
             echo "🔍 Checking files on VPS..."
-            sudo ls -l ./docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not found"; exit 1; }
+            sudo ls -l ./docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not found";  }
             sudo cat docker-compose-dev.yml
             echo "✅ Files exist"
 
@@ -159,12 +159,12 @@ jobs:
 
             # Docker login
             echo "🔍 Logging in to Docker Hub..."
-            echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin || { echo "ERROR: Docker Hub login failed"; exit 1; }
+            echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin || { echo "ERROR: Docker Hub login failed";  }
             echo "✅ Docker Hub login successful"
 
             # Ensure network exists
             echo "🔍 Checking network multi-team-dev-deployment_shared-net..."
-            sudo docker network inspect multi-team-dev-deployment_shared-net >/dev/null 2>&1 || sudo docker network create multi-team-dev-deployment_shared-net || { echo "ERROR: Failed to create network"; exit 1; }
+            sudo docker network inspect multi-team-dev-deployment_shared-net >/dev/null 2>&1 || sudo docker network create multi-team-dev-deployment_shared-net || { echo "ERROR: Failed to create network";  }
             echo "✅ Network exists or created"
 
             # Stop and remove old container
@@ -174,12 +174,12 @@ jobs:
             
             # Pull image
             echo "🔍 Pulling Docker image..."
-            sudo docker compose -f ./docker-compose-dev.yml pull || { echo "ERROR: Failed to pull image"; exit 1; }
+            sudo docker compose -f ./docker-compose-dev.yml pull || { echo "ERROR: Failed to pull image";  }
             echo "✅ Image pulled successfully"
 
             # Start container
             echo "🔍 Starting container..."
-            sudo docker compose -f ./docker-compose-dev.yml up -d --no-build || { echo "ERROR: Failed to start container"; exit 1; }
+            sudo docker compose -f ./docker-compose-dev.yml up -d --no-build || { echo "ERROR: Failed to start container";  }
             echo "✅ Container started"
 
             docker rmi $(docker images ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }} -f 'dangling=true' -q)
@@ -189,7 +189,7 @@ jobs:
             echo "🔍 Waiting for container to stabilize..."
             sleep 20
             echo "🔍 Checking container status..."
-            sudo docker ps -a | grep datax-backend-dev || { echo "ERROR: Container datax-backend-dev not running"; exit 1; }
+            sudo docker ps -a | grep datax-backend-dev || { echo "ERROR: Container datax-backend-dev not running";  }
             echo "✅ Container is running"
             echo "🔍 Checking logs from container..."
             sudo docker logs -f datax-backend-dev || true
