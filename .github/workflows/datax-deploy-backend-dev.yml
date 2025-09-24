@@ -22,7 +22,7 @@ jobs:
       - name: Verify docker-compose-dev.yml exists
         run: |
           echo "🔍 Checking for docker-compose-dev.yml in repo..."
-          ls -l docker-compose-dev.yml || { echo ": docker-compose-dev.yml not found in repo"}
+          ls -l docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not found in repo"; }
           echo "✅ docker-compose-dev.yml found"
 
       - name: Debug workspace files
