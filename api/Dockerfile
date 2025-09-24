@@ -7,7 +7,7 @@ FROM python:3.12-slim
 RUN apt-get update && apt-get install -y --no-install-recommends curl && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Google API dependencies
-RUN pip install --no-cache-dir --upgrade google-auth google-auth-oauthlib google-api-python-clientt
+RUN pip install --no-cache-dir --upgrade google-auth google-auth-oauthlib google-api-python-client
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -22,7 +22,7 @@ COPY api/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code from the api directory
-COPY api/ .
+COPY . .
 
 # Expose port 8040
 EXPOSE 8040
