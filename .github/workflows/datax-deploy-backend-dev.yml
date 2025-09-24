@@ -17,7 +17,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # NEW: Check for file existence in repo
       - name: Verify docker-compose-dev.yml exists
         run: |
           ls -l docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not found in repo"; exit 1; }
@@ -27,21 +26,20 @@ jobs:
         with:
           host: ${{ secrets.DEV_VPS_HOST }}
           username: ${{ secrets.DEV_VPS_USERNAME }}
-          port: ${{secrets.DEV_VPS_PORT}}
+          port: ${{ secrets.DEV_VPS_PORT }}
           key: ${{ secrets.DEV_VPS_KEY }}
           source: "docker-compose-dev.yml"
           target: "/home/datax-backend"
           overwrite: true
           strip_components: 0
-          debug: true  # NEW: for debugging
+          debug: true
 
-      # NEW: Check file copy
       - name: Verify file copy
         uses: appleboy/ssh-action@master
         with: 
           host: ${{ secrets.DEV_VPS_HOST }}
           username: ${{ secrets.DEV_VPS_USERNAME }}
-          port: ${{secrets.DEV_VPS_PORT}}
+          port: ${{ secrets.DEV_VPS_PORT }}
           key: ${{ secrets.DEV_VPS_KEY }}
           script: |
             ls -l /home/datax-backend/docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not copied"; exit 1; }
@@ -86,73 +84,69 @@ jobs:
           username: ${{ secrets.DEV_VPS_USERNAME }}
           port: ${{ secrets.DEV_VPS_PORT }}
           key: ${{ secrets.DEV_VPS_KEY }}
+          capture_stdout: true  # NEW: Capture logs for debugging
           script: |
             cd /home/datax-backend
 
-            # NEW: File existence check
-            ls -l /home/datax-backend/docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not found"; exit 1; }
-            ls -l /home/datax-backend/.env.datax || { echo "ERROR: .env.datax not found"; exit 1; }
-            
-            echo "AUTH_JWT_SECRET=${{ secrets.DEV_AUTH_JWT_SECRET }}" > .env.datax
-            echo "AUTH_SESSION_SECRET=${{ secrets.DEV_AUTH_SESSION_SECRET }}" >> .env.datax
+            # File checks
+            sudo ls -l /home/datax-backend/docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not found"; exit 1; }
+            sudo ls -l /home/datax-backend/.env.datax || { echo "ERROR: .env.datax not found"; exit 1; }
 
-            echo "DB_MONGO_URI=${{ secrets.DEV_DB_MONGO_URI }}" >> .env.datax
-            echo "DB_MONGO_NAME=${{ secrets.DEV_DB_MONGO_NAME }}" >> .env.datax
-            echo "DB_MONGO_COLLECTION_CHAT_SESSIONS=${{ secrets.DEV_DB_MONGO_COLLECTION_CHAT_SESSIONS }}" >> .env.datax
-            echo "DB_MONGO_COLLECTION_USERS=${{ secrets.DEV_DB_MONGO_COLLECTION_USERS }}" >> .env.datax
+            # Overwrite .env.datax
+            sudo bash -c 'echo "AUTH_JWT_SECRET=${{ secrets.DEV_AUTH_JWT_SECRET }}" > .env.datax'
+            sudo bash -c 'echo "AUTH_SESSION_SECRET=${{ secrets.DEV_AUTH_SESSION_SECRET }}" >> .env.datax'
+            sudo bash -c 'echo "DB_MONGO_URI=mongodb://Muhammad:CIHTS99FV@mongo:27017/datax" >> .env.datax'
+            sudo bash -c 'echo "DB_MONGO_NAME=${{ secrets.DEV_DB_MONGO_NAME }}" >> .env.datax'
+            sudo bash -c 'echo "DB_MONGO_COLLECTION_CHAT_SESSIONS=${{ secrets.DEV_DB_MONGO_COLLECTION_CHAT_SESSIONS }}" >> .env.datax'
+            sudo bash -c 'echo "DB_MONGO_COLLECTION_USERS=${{ secrets.DEV_DB_MONGO_COLLECTION_USERS }}" >> .env.datax'
+            sudo bash -c 'echo "STORAGE_MINIO_ENDPOINT=minio:9000" >> .env.datax'
+            sudo bash -c 'echo "STORAGE_MINIO_USERNAME=${{ secrets.DEV_STORAGE_MINIO_USERNAME }}" >> .env.datax'
+            sudo bash -c 'echo "STORAGE_MINIO_PASSWORD=${{ secrets.DEV_STORAGE_MINIO_PASSWORD }}" >> .env.datax'
+            sudo bash -c 'echo "STORAGE_MINIO_SECURE=${{ secrets.DEV_STORAGE_MINIO_SECURE }}" >> .env.datax'
+            sudo bash -c 'echo "STORAGE_MINIO_BUCKET_SHEETS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_SHEETS }}" >> .env.datax'
+            sudo bash -c 'echo "STORAGE_MINIO_BUCKET_UPLOADS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_UPLOADS }}" >> .env.datax'
+            sudo bash -c 'echo "AUTH_GOOGLE_CLIENT_ID=${{ secrets.DEV_AUTH_GOOGLE_CLIENT_ID }}" >> .env.datax'
+            sudo bash -c 'echo "AUTH_GOOGLE_CLIENT_SECRET=${{ secrets.DEV_AUTH_GOOGLE_CLIENT_SECRET }}" >> .env.datax'
+            sudo bash -c 'echo "AUTH_GOOGLE_PROJECT_ID=${{ secrets.DEV_AUTH_GOOGLE_PROJECT_ID }}" >> .env.datax'
+            sudo bash -c 'echo "AUTH_GOOGLE_URI_AUTH=${{ secrets.DEV_AUTH_GOOGLE_URI_AUTH }}" >> .env.datax'
+            sudo bash -c 'echo "AUTH_GOOGLE_URI_TOKEN=${{ secrets.DEV_AUTH_GOOGLE_URI_TOKEN }}" >> .env.datax'
+            sudo bash -c 'echo "AUTH_GOOGLE_URI_CERTS=${{ secrets.DEV_AUTH_GOOGLE_URI_CERTS }}" >> .env.datax'
+            sudo bash -c 'echo "MAIL_SMTP_HOST=${{ secrets.DEV_MAIL_SMTP_HOST }}" >> .env.datax'
+            sudo bash -c 'echo "MAIL_SMTP_PORT=${{ secrets.DEV_MAIL_SMTP_PORT }}" >> .env.datax'
+            sudo bash -c 'echo "MAIL_SMTP_USER=${{ secrets.DEV_MAIL_SMTP_USER }}" >> .env.datax'
+            sudo bash -c 'echo "MAIL_SMTP_PASSWORD=${{ secrets.DEV_MAIL_SMTP_PASSWORD }}" >> .env.datax'
+            sudo bash -c 'echo "MAIL_FROM_NAME=${{ secrets.DEV_MAIL_FROM_NAME }}" >> .env.datax'
+            sudo bash -c 'echo "MAIL_FROM_ADDRESS=${{ secrets.DEV_MAIL_FROM_ADDRESS }}" >> .env.datax'
+            sudo bash -c 'echo "LLM_OPENROUTER_API_BASE=${{ secrets.DEV_LLM_OPENROUTER_API_BASE }}" >> .env.datax'
+            sudo bash -c 'echo "LLM_OPENROUTER_API_KEY=${{ secrets.DEV_LLM_OPENROUTER_API_KEY }}" >> .env.datax'
+            sudo bash -c 'echo "MODEL_NAME=${{ secrets.DEV_MODEL_NAME }}" >> .env.datax'
+            sudo bash -c 'echo "FRONTEND_URL=${{ secrets.DEV_FRONTEND_URL }}" >> .env.datax'
+            sudo bash -c 'echo "VPS_URL=${{ secrets.DEV_VPS_URL }}" >> .env.datax'
+            sudo bash -c 'echo "VPS_HOST=${{ secrets.DEV_VPS_HOST }}" >> .env.datax'
+            sudo bash -c 'echo "VPS_USERNAME=${{ secrets.DEV_VPS_USERNAME }}" >> .env.datax'
+            sudo bash -c 'echo "VPS_PORT=${{ secrets.DEV_VPS_PORT }}" >> .env.datax'
+            sudo bash -c 'echo "CORS_CONNECTION=${{ secrets.DEV_CORS_CONNECTION }}" >> .env.datax'
+            sudo bash -c 'echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax'
+            sudo bash -c 'echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax'
 
-            echo "STORAGE_MINIO_ENDPOINT=${{ secrets.DEV_STORAGE_MINIO_ENDPOINT }}" >> .env.datax
-            echo "STORAGE_MINIO_ACCESS_KEY=${{ secrets.DEV_STORAGE_MINIO_USERNAME }}" >> .env.datax
-            echo "STORAGE_MINIO_SECRET_KEY=${{ secrets.DEV_STORAGE_MINIO_PASSWORD }}" >> .env.datax
-            echo "STORAGE_MINIO_SECURE=${{ secrets.DEV_STORAGE_MINIO_SECURE }}" >> .env.datax
-            echo "STORAGE_MINIO_BUCKET_SHEETS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_SHEETS }}" >> .env.datax
-            echo "STORAGE_MINIO_BUCKET_UPLOADS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_UPLOADS }}" >> .env.datax
-
-            echo "AUTH_GOOGLE_CLIENT_ID=${{ secrets.DEV_AUTH_GOOGLE_CLIENT_ID }}" >> .env.datax
-            echo "AUTH_GOOGLE_CLIENT_SECRET=${{ secrets.DEV_AUTH_GOOGLE_CLIENT_SECRET }}" >> .env.datax
-            echo "AUTH_GOOGLE_PROJECT_ID=${{ secrets.DEV_AUTH_GOOGLE_PROJECT_ID }}" >> .env.datax
-            echo "AUTH_GOOGLE_URI_AUTH=${{ secrets.DEV_AUTH_GOOGLE_URI_AUTH }}" >> .env.datax
-            echo "AUTH_GOOGLE_URI_TOKEN=${{ secrets.DEV_AUTH_GOOGLE_URI_TOKEN }}" >> .env.datax
-            echo "AUTH_GOOGLE_URI_CERTS=${{ secrets.DEV_AUTH_GOOGLE_URI_CERTS }}" >> .env.datax
-
-            echo "MAIL_SMTP_HOST=${{ secrets.DEV_MAIL_SMTP_HOST }}" >> .env.datax
-            echo "MAIL_SMTP_PORT=${{ secrets.DEV_MAIL_SMTP_PORT }}" >> .env.datax
-            echo "MAIL_SMTP_USER=${{ secrets.DEV_MAIL_SMTP_USER }}" >> .env.datax
-            echo "MAIL_SMTP_PASSWORD=${{ secrets.DEV_MAIL_SMTP_PASSWORD }}" >> .env.datax
-            echo "MAIL_FROM_NAME=${{ secrets.DEV_MAIL_FROM_NAME }}" >> .env.datax
-            echo "MAIL_FROM_ADDRESS=${{ secrets.DEV_MAIL_FROM_ADDRESS }}" >> .env.datax
-
-            echo "LLM_OPENROUTER_API_BASE=${{ secrets.DEV_LLM_OPENROUTER_API_BASE }}" >> .env.datax
-            echo "LLM_OPENROUTER_API_KEY=${{ secrets.DEV_LLM_OPENROUTER_API_KEY }}" >> .env.datax
-            echo "MODEL_NAME=${{ secrets.DEV_MODEL_NAME }}" >> .env.datax
-
-            echo "FRONTEND_URL=${{ secrets.DEV_FRONTEND_URL }}" >> .env.datax
-            echo "VPS_URL=${{ secrets.DEV_VPS_URL }}" >> .env.datax
-            echo "VPS_HOST=${{ secrets.DEV_VPS_HOST }}" >> .env.datax
-            echo "VPS_USERNAME=${{ secrets.DEV_VPS_USERNAME }}" >> .env.datax
-            echo "VPS_PORT=${{ secrets.DEV_VPS_PORT }}" >> .env.datax
-            echo "CORS_CONNECTION=${{ secrets.DEV_CORS_CONNECTION }}" >> .env.datax
-            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
-            echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
-
-            # NEW: Docker login
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+            # Docker login
+            sudo bash -c 'echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin'
 
             # Ensure network exists
-            docker network inspect multi-team-dev-deployment_shared-net >/dev/null 2>&1 || docker network create multi-team-dev-deployment_shared-net
+            sudo docker network inspect multi-team-dev-deployment_shared-net >/dev/null 2>&1 || sudo docker network create multi-team-dev-deployment_shared-net
 
             # Stop and remove old
-            docker rm -f datax-backend-dev || true
-            docker image prune -af || true
+            sudo docker rm -f datax-backend-dev || true
+            docker image prune -af 
 
             # Pull and up
-            docker compose -f docker-compose-dev.yml pull || { echo "ERROR: Failed to pull"; exit 1; }
-            docker compose -f docker-compose-dev.yml up -d || { echo "ERROR: Failed to up"; exit 1; }
+            sudo docker compose -f docker-compose-dev.yml pull || { echo "ERROR: Failed to pull"; exit 1; }
+            sudo docker compose -f docker-compose-dev.yml up -d || { echo "ERROR: Failed to up"; exit 1; }
 
             # Wait & Check
-            sleep 15  
-            docker ps -a | grep datax-backend-dev || { echo "ERROR: Container not running"; exit 1; }
-            docker network inspect datax_dev-net | grep datax-backend-dev || { echo "ERROR: Not connected to network"; exit 1; }
-            docker logs datax-backend-dev --tail 20
+            sleep 30  # Increased for stability
+            sudo docker ps -a | grep datax-backend-dev || { echo "ERROR: Container not running"; exit 1; }
+            sudo docker network inspect multi-team-dev-deployment_shared-net | grep datax-backend-dev || { echo "ERROR: Not connected to network"; exit 1; }
+            sudo docker logs datax-backend-dev --tail 50  # More logs for debug
 
             echo "✅ Deployment successful! Visit: ${{ secrets.DEV_VPS_URL }}"
