@@ -72,6 +72,13 @@ jobs:
     needs: build_and_push
     runs-on: ubuntu-latest
     steps:
+      
+      - name: Debug check docker-compose-dev.yml path
+        run: |
+         echo "Workspace: $GITHUB_WORKSPACE"
+         ls -l $GITHUB_WORKSPACE/docker-compose-dev.yml
+        
+
       - name: Copy docker compose file to VPS
         uses: appleboy/scp-action@v1
         with:
@@ -79,7 +86,7 @@ jobs:
           username: ${{ secrets.DEV_VPS_USERNAME }}
           port: ${{ secrets.DEV_VPS_PORT }}
           key: ${{ secrets.DEV_VPS_KEY }}
-          source: "./docker-compose-dev.yml"
+          source: "${{ github.workspace }}/docker-compose-dev.yml"
           target: "/home/datax-backend"
           debug: true
 
@@ -201,8 +208,10 @@ jobs:
             sudo docker rm -f datax-backend-dev || { echo "WARNING: No old container to remove"; }
 
             # Clean up dangling images
-            docker rmi $(docker images ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }} -f "dangling=true" -q) || true
-
+            images=$(docker images ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }} -f "dangling=true" -q)
+            if [ -n "$images" ]; then
+              docker rmi $images || true
+            fi
 
             echo "✅ Old container removed"
             echo "✅ dangling images cleaned up"
