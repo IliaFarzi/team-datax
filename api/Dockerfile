@@ -19,7 +19,7 @@ RUN pip install --upgrade pip
 COPY api/requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r api/requirements.txt
 
 # Copy the application code from the api directory
 COPY . .
