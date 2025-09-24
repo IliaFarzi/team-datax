@@ -14,7 +14,7 @@ client_secret.json
 *.ps1
 
 # Text dumps
-*.txt
+*all_code.txt
 
 # Logs
 *.log
