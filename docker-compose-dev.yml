@@ -10,9 +10,9 @@ services:
     env_file:
       - .env.datax
     networks:
-      - dev-net
+      - shared-net
 
 networks:
-  dev-net:
-    name: datax_dev-net
+  shared-net:
+    name: multi-team-dev-deployment_shared-net
     external: true

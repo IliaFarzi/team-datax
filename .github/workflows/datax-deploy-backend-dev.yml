@@ -138,8 +138,8 @@ jobs:
             # NEW: Docker login
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
-            # NEW: Create network
-            docker network inspect datax_dev-net >/dev/null 2>&1 || docker network create datax_dev-net
+            # Ensure network exists
+            docker network inspect multi-team-dev-deployment_shared-net >/dev/null 2>&1 || docker network create multi-team-dev-deployment_shared-net
 
             # Stop and remove old
             docker rm -f datax-backend-dev || true
@@ -149,9 +149,10 @@ jobs:
             docker compose -f docker-compose-dev.yml pull || { echo "ERROR: Failed to pull"; exit 1; }
             docker compose -f docker-compose-dev.yml up -d || { echo "ERROR: Failed to up"; exit 1; }
 
-            # NEW: Check status and logs
-            sleep 5
+            # Wait & Check
+            sleep 15  
             docker ps -a | grep datax-backend-dev || { echo "ERROR: Container not running"; exit 1; }
-            docker logs datax-backend-dev --tail 50
+            docker network inspect datax_dev-net | grep datax-backend-dev || { echo "ERROR: Not connected to network"; exit 1; }
+            docker logs datax-backend-dev --tail 20
 
             echo "✅ Deployment successful! Visit: ${{ secrets.DEV_VPS_URL }}"
