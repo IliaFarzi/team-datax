@@ -84,7 +84,6 @@ jobs:
           username: ${{ secrets.DEV_VPS_USERNAME }}
           port: ${{ secrets.DEV_VPS_PORT }}
           key: ${{ secrets.DEV_VPS_KEY }}
-          capture_stdout: true  # NEW: Capture logs for debugging
           script: |
             cd /home/datax-backend
 
@@ -137,7 +136,6 @@ jobs:
 
             # Stop and remove old
             sudo docker rm -f datax-backend-dev || true
-            docker image prune -af 
 
             # Pull and up
             sudo docker compose -f docker-compose-dev.yml pull || { echo "ERROR: Failed to pull"; exit 1; }
