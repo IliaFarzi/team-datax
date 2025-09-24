@@ -19,7 +19,9 @@ jobs:
 
       - name: Verify docker-compose-dev.yml exists
         run: |
+          echo "🔍 Checking for docker-compose-dev.yml in repo..."
           ls -l docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not found in repo"; exit 1; }
+          echo "✅ docker-compose-dev.yml found"
 
       - name: Copy files to VPS
         uses: appleboy/scp-action@master
@@ -34,15 +36,18 @@ jobs:
           strip_components: 0
           debug: true
 
-      - name: Verify file copy
+      - name: Verify file copy on VPS
         uses: appleboy/ssh-action@master
         with: 
           host: ${{ secrets.DEV_VPS_HOST }}
           username: ${{ secrets.DEV_VPS_USERNAME }}
           port: ${{ secrets.DEV_VPS_PORT }}
           key: ${{ secrets.DEV_VPS_KEY }}
+          capture_stdout: true
           script: |
-            ls -l /home/datax-backend/docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not copied"; exit 1; }
+            echo "🔍 Checking copied docker-compose-dev.yml on VPS..."
+            sudo ls -l /home/datax-backend/docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not copied to /home/datax-backend"; exit 1; }
+            echo "✅ docker-compose-dev.yml copied successfully"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -61,6 +66,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Verify Docker Hub login
+        run: |
+          echo "🔍 Verifying Docker Hub login..."
+          docker pull hello-world || { echo "ERROR: Docker Hub login failed"; exit 1; }
+          echo "✅ Docker Hub login successful"
+
       - name: Build and push Docker image
         id: build
         uses: docker/build-push-action@v4
@@ -71,7 +82,9 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/datax-backend-dev:latest
 
       - name: Show built image digest
-        run: echo "✅ Dev image digest = ${{ steps.build.outputs.digest }}"
+        run: |
+          echo "🔍 Built image digest..."
+          echo "✅ Dev image digest = ${{ steps.build.outputs.digest }}"
 
   deploy:
     needs: build_and_push
@@ -84,14 +97,18 @@ jobs:
           username: ${{ secrets.DEV_VPS_USERNAME }}
           port: ${{ secrets.DEV_VPS_PORT }}
           key: ${{ secrets.DEV_VPS_KEY }}
+          capture_stdout: true
           script: |
             cd /home/datax-backend
 
             # File checks
+            echo "🔍 Checking files on VPS..."
             sudo ls -l /home/datax-backend/docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not found"; exit 1; }
             sudo ls -l /home/datax-backend/.env.datax || { echo "ERROR: .env.datax not found"; exit 1; }
+            echo "✅ Files exist"
 
             # Overwrite .env.datax
+            echo "🔍 Writing .env.datax..."
             sudo bash -c 'echo "AUTH_JWT_SECRET=${{ secrets.DEV_AUTH_JWT_SECRET }}" > .env.datax'
             sudo bash -c 'echo "AUTH_SESSION_SECRET=${{ secrets.DEV_AUTH_SESSION_SECRET }}" >> .env.datax'
             sudo bash -c 'echo "DB_MONGO_URI=mongodb://Muhammad:CIHTS99FV@mongo:27017/datax" >> .env.datax'
@@ -99,8 +116,8 @@ jobs:
             sudo bash -c 'echo "DB_MONGO_COLLECTION_CHAT_SESSIONS=${{ secrets.DEV_DB_MONGO_COLLECTION_CHAT_SESSIONS }}" >> .env.datax'
             sudo bash -c 'echo "DB_MONGO_COLLECTION_USERS=${{ secrets.DEV_DB_MONGO_COLLECTION_USERS }}" >> .env.datax'
             sudo bash -c 'echo "STORAGE_MINIO_ENDPOINT=minio:9000" >> .env.datax'
-            sudo bash -c 'echo "STORAGE_MINIO_USERNAME=${{ secrets.DEV_STORAGE_MINIO_USERNAME }}" >> .env.datax'
-            sudo bash -c 'echo "STORAGE_MINIO_PASSWORD=${{ secrets.DEV_STORAGE_MINIO_PASSWORD }}" >> .env.datax'
+            sudo bash -c 'echo "STORAGE_MINIO_ACCESS_KEY=${{ secrets.DEV_STORAGE_MINIO_USERNAME }}" >> .env.datax'
+            sudo bash -c 'echo "STORAGE_MINIO_SECRET_KEY=${{ secrets.DEV_STORAGE_MINIO_PASSWORD }}" >> .env.datax'
             sudo bash -c 'echo "STORAGE_MINIO_SECURE=${{ secrets.DEV_STORAGE_MINIO_SECURE }}" >> .env.datax'
             sudo bash -c 'echo "STORAGE_MINIO_BUCKET_SHEETS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_SHEETS }}" >> .env.datax'
             sudo bash -c 'echo "STORAGE_MINIO_BUCKET_UPLOADS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_UPLOADS }}" >> .env.datax'
@@ -127,24 +144,47 @@ jobs:
             sudo bash -c 'echo "CORS_CONNECTION=${{ secrets.DEV_CORS_CONNECTION }}" >> .env.datax'
             sudo bash -c 'echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax'
             sudo bash -c 'echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax'
+            sudo bash -c 'cat .env.datax'  # Debug: Show env file content
+            echo "✅ .env.datax written successfully"
 
             # Docker login
-            sudo bash -c 'echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin'
+            echo "🔍 Logging in to Docker Hub..."
+            sudo bash -c 'echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin' || { echo "ERROR: Docker Hub login failed"; exit 1; }
+            echo "✅ Docker Hub login successful"
 
             # Ensure network exists
-            sudo docker network inspect multi-team-dev-deployment_shared-net >/dev/null 2>&1 || sudo docker network create multi-team-dev-deployment_shared-net
+            echo "🔍 Checking network multi-team-dev-deployment_shared-net..."
+            sudo docker network inspect multi-team-dev-deployment_shared-net >/dev/null 2>&1 || sudo docker network create multi-team-dev-deployment_shared-net || { echo "ERROR: Failed to create network"; exit 1; }
+            echo "✅ Network exists or created"
 
-            # Stop and remove old
-            sudo docker rm -f datax-backend-dev || true
+            # Stop and remove old container
+            echo "🔍 Stopping and removing old container..."
+            sudo docker rm -f datax-backend-dev || { echo "WARNING: No old container to remove"; }
+            echo "✅ Old container removed"
 
-            # Pull and up
-            sudo docker compose -f docker-compose-dev.yml pull || { echo "ERROR: Failed to pull"; exit 1; }
-            sudo docker compose -f docker-compose-dev.yml up -d || { echo "ERROR: Failed to up"; exit 1; }
+            # Pull image
+            echo "🔍 Pulling Docker image..."
+            sudo docker compose -f docker-compose-dev.yml pull || { echo "ERROR: Failed to pull image"; exit 1; }
+            echo "✅ Image pulled successfully"
+
+            # Start container
+            echo "🔍 Starting container..."
+            sudo docker compose -f docker-compose-dev.yml up -d || { echo "ERROR: Failed to start container"; exit 1; }
+            echo "✅ Container started"
 
             # Wait & Check
-            sleep 30  # Increased for stability
-            sudo docker ps -a | grep datax-backend-dev || { echo "ERROR: Container not running"; exit 1; }
-            sudo docker network inspect multi-team-dev-deployment_shared-net | grep datax-backend-dev || { echo "ERROR: Not connected to network"; exit 1; }
-            sudo docker logs datax-backend-dev --tail 50  # More logs for debug
+            echo "🔍 Waiting for container to stabilize..."
+            sleep 30
+            echo "🔍 Checking container status..."
+            sudo docker ps -a | grep datax-backend-dev || { echo "ERROR: Container datax-backend-dev not running"; exit 1; }
+            echo "✅ Container is running"
+            echo "🔍 Checking network connection..."
+            sudo docker network inspect multi-team-dev-deployment_shared-net | grep datax-backend-dev || { echo "ERROR: Container not connected to multi-team-dev-deployment_shared-net"; exit 1; }
+            echo "✅ Container connected to network"
+            echo "🔍 Container logs:"
+            sudo docker logs datax-backend-dev --tail 50
+            echo "🔍 Testing container accessibility..."
+            curl -s -f ${{ secrets.DEV_VPS_HOST }}:8040 || { echo "ERROR: Container not accessible on port 8040"; exit 1; }
+            echo "✅ Container accessible on port 8040"
 
             echo "✅ Deployment successful! Visit: ${{ secrets.DEV_VPS_URL }}"
