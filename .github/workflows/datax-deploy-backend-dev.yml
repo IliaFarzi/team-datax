@@ -7,15 +7,20 @@ on:
       - main
     paths:
       - 'api/**'
-      - '.github/workflows/datax-deploy-backend-dev.yml'
+      - 'requirements.txt'
+      - 'Dockerfile'
       - 'docker-compose-dev.yml'
+      - '.github/workflows/datax-deploy-backend-dev.yml'
+
+env:
+  IMAGE_NAME: datax-backend-dev
 
 jobs:
   build_and_push:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Verify docker-compose-dev.yml exists
         run: |
@@ -23,41 +28,8 @@ jobs:
           ls -l docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not found in repo"; exit 1; }
           echo "✅ docker-compose-dev.yml found"
 
-      - name: Copy files to VPS
-        uses: appleboy/scp-action@v0.1.7  # change to stable version
-        with:
-          host: ${{ secrets.DEV_VPS_HOST }}
-          username: ${{ secrets.DEV_VPS_USERNAME }}
-          port: ${{ secrets.DEV_VPS_PORT }}
-          key: ${{ secrets.DEV_VPS_KEY }}
-          source: "docker-compose-dev.yml"
-          target: "/home/datax-backend"
-          overwrite: true
-          strip_components: 0
-          debug: true
-
-      - name: Verify file copy on VPS
-        uses: appleboy/ssh-action@v1.0.3  # change to stable version
-        with: 
-          host: ${{ secrets.DEV_VPS_HOST }}
-          username: ${{ secrets.DEV_VPS_USERNAME }}
-          port: ${{ secrets.DEV_VPS_PORT }}
-          key: ${{ secrets.DEV_VPS_KEY }}
-          script: |
-            echo "🔍 Checking copied docker-compose-dev.yml on VPS..."
-            sudo ls -l /home/datax-backend/docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not copied to /home/datax-backend"; exit 1; }
-            echo "✅ docker-compose-dev.yml copied successfully"
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-
-      - name: Cache pip packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -71,32 +43,51 @@ jobs:
           docker pull hello-world || { echo "ERROR: Docker Hub login failed"; exit 1; }
           echo "✅ Docker Hub login successful"
 
-      - name: Build and push Docker image
-        id: build
+      - name: Build and push backend image
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/datax-backend-dev:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
-      - name: Show built image digest
-        run: |
-          echo "🔍 Built image digest..."
-          echo "✅ Dev image digest = ${{ steps.build.outputs.digest }}"
+
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
 
   deploy:
     needs: build_and_push
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1.0.3  # change to stable version
+      - name: Copy docker compose file to VPS
+        uses: appleboy/scp-action@v1
         with:
           host: ${{ secrets.DEV_VPS_HOST }}
           username: ${{ secrets.DEV_VPS_USERNAME }}
           port: ${{ secrets.DEV_VPS_PORT }}
           key: ${{ secrets.DEV_VPS_KEY }}
+          source: "docker-compose-dev.yml"
+          target: "/home/datax-backend"
+          debug: true
+
+      - name: Verify file copy on VPS
+        uses: appleboy/ssh-action@v1  
+        with: 
+          host: ${{ secrets.DEV_VPS_HOST }}
+          username: ${{ secrets.DEV_VPS_USERNAME }}
+          port: ${{ secrets.DEV_VPS_PORT }}
+          key: ${{ secrets.DEV_VPS_KEY }}
           script: |
+            echo "🔍 Checking copied docker-compose-dev.yml on VPS..."
+            sudo ls -l /home/datax-backend/docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not copied to /home/datax-backend"; exit 1; }
+            echo "✅ docker-compose-dev.yml copied successfully"
+            
             cd /home/datax-backend
 
             # File checks
@@ -202,11 +193,12 @@ jobs:
             echo "🔍 Stopping and removing old container..."
             sudo docker rm -f datax-backend-dev || { echo "WARNING: No old container to remove"; }
 
-            # remove old image
-            sudo docker image prune -af || true
+            # Clean up dangling images
+            docker rmi $(docker images ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }} -f "dangling=true" -q) || true
+
 
             echo "✅ Old container removed"
-            echo "✅ Old image pruned"
+            echo "✅ dangling images cleaned up"
 
             # Pull image
             echo "🔍 Pulling Docker image..."
@@ -215,7 +207,7 @@ jobs:
 
             # Start container
             echo "🔍 Starting container..."
-            sudo docker compose -f docker-compose-dev.yml up -d || { echo "ERROR: Failed to start container"; exit 1; }
+            sudo docker compose -f docker-compose-dev.yml up -d --no-build || { echo "ERROR: Failed to start container"; exit 1; }
             echo "✅ Container started"
 
             # Wait & Check
@@ -224,6 +216,8 @@ jobs:
             echo "🔍 Checking container status..."
             sudo docker ps -a | grep datax-backend-dev || { echo "ERROR: Container datax-backend-dev not running"; exit 1; }
             echo "✅ Container is running"
+            echo "🔍 Checking last 20 logs from container..."
+            sudo docker logs --tail 20 datax-backend-dev || true
             echo "🔍 Checking network connection..."
             sudo docker network inspect multi-team-dev-deployment_shared-net | grep datax-backend-dev || { echo "ERROR: Container not connected to multi-team-dev-deployment_shared-net"; exit 1; }
             echo "✅ Container connected to network"
