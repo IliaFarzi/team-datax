@@ -86,7 +86,7 @@ jobs:
           port: ${{ secrets.DEV_VPS_PORT }}
           key: ${{ secrets.DEV_VPS_KEY }}
           source: "api/docker-compose-dev.yml"
-          target: "/home/datax-backend"
+          target: "/home/datax-backend/docker-compose-dev.yml"
           debug: true
 
       - name: deploy on VPS
