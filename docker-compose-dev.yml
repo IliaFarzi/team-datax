@@ -14,5 +14,5 @@ services:
 
 networks:
   dev-net:
-    name: multi-team-dev-deployment_dev-net
+    name: datax_dev-net
     external: true
