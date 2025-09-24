@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import timedelta
-from api.app.auth_router import get_current_user
-from api.app.database import ensure_mongo_collections, get_minio_client
+from .auth_router import get_current_user
+from .database import ensure_mongo_collections, get_minio_client
 import logging
 
 logger = logging.getLogger(__name__)
@@ -10,7 +10,7 @@ file_router = APIRouter(prefix="/files", tags=["File Download"])
 
 client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
 
-from api.app.database import STORAGE_MINIO_BUCKET_SHEETS, STORAGE_MINIO_BUCKET_UPLOADS
+from .database import STORAGE_MINIO_BUCKET_SHEETS, STORAGE_MINIO_BUCKET_UPLOADS
 
 def generate_presigned_url(bucket: str, object_name: str, expiry: int = 3600):
     """Generate a presigned URL for downloading from MinIO"""

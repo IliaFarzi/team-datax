@@ -8,7 +8,7 @@ import tempfile
 from datetime import datetime, timezone
 import logging
 
-from api.app.database import ensure_mongo_collections, get_minio_client, STORAGE_MINIO_ENDPOINT, STORAGE_MINIO_BUCKET_UPLOADS
+from .database import ensure_mongo_collections, get_minio_client, STORAGE_MINIO_ENDPOINT, STORAGE_MINIO_BUCKET_UPLOADS
 
 load_dotenv(".env")
 
