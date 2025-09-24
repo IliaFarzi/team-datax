@@ -151,8 +151,9 @@ jobs:
 
             # Docker login
             echo "🔍 Logging in to Docker Hub..."
-            "echo '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin" || { echo "ERROR: Docker Hub login failed"; exit 1; }
+            echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin || { echo "ERROR: Docker Hub login failed"; exit 1; }
             echo "✅ Docker Hub login successful"
+
 
             # Ensure network exists
             echo "🔍 Checking network multi-team-dev-deployment_shared-net..."
