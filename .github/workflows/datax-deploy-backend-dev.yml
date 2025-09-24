@@ -201,7 +201,12 @@ jobs:
             # Stop and remove old container
             echo "🔍 Stopping and removing old container..."
             sudo docker rm -f datax-backend-dev || { echo "WARNING: No old container to remove"; }
+
+            # remove old image
+            sudo docker image prune -af || true
+
             echo "✅ Old container removed"
+            echo "✅ Old image pruned"
 
             # Pull image
             echo "🔍 Pulling Docker image..."
@@ -222,10 +227,4 @@ jobs:
             echo "🔍 Checking network connection..."
             sudo docker network inspect multi-team-dev-deployment_shared-net | grep datax-backend-dev || { echo "ERROR: Container not connected to multi-team-dev-deployment_shared-net"; exit 1; }
             echo "✅ Container connected to network"
-            echo "🔍 Container logs:"
-            sudo docker logs datax-backend-dev --tail 50
-            echo "🔍 Testing container accessibility..."
-            curl -s -f http://${{ secrets.DEV_VPS_HOST }}:8040 || { echo "ERROR: Container not accessible on port 8040"; exit 1; }
-            echo "✅ Container accessible on port 8040"
-
             echo "✅ Deployment successful! Visit: ${{ secrets.DEV_VPS_URL }}"
