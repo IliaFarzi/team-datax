@@ -148,12 +148,15 @@ jobs:
             sudo cat .env.datax  
             echo "✅ .env.datax written successfully"
 
+            # Load env file
+            set -o allexport
+            source .env.datax
+            set +o allexport
 
             # Docker login
             echo "🔍 Logging in to Docker Hub..."
             echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin || { echo "ERROR: Docker Hub login failed"; exit 1; }
             echo "✅ Docker Hub login successful"
-
 
             # Ensure network exists
             echo "🔍 Checking network multi-team-dev-deployment_shared-net..."
