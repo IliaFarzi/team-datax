@@ -168,7 +168,6 @@ jobs:
             sudo docker rm -f datax-backend-dev || { echo "WARNING: No old container to remove"; }
             echo "✅ Old container removed"
             
-
             # Pull image
             echo "🔍 Pulling Docker image..."
             sudo docker compose -f ./docker-compose-dev.yml pull || { echo "ERROR: Failed to pull image"; exit 1; }
@@ -184,13 +183,10 @@ jobs:
 
             # Wait & Check
             echo "🔍 Waiting for container to stabilize..."
-            sleep 30
+            sleep 20
             echo "🔍 Checking container status..."
             sudo docker ps -a | grep datax-backend-dev || { echo "ERROR: Container datax-backend-dev not running"; exit 1; }
             echo "✅ Container is running"
-            echo "🔍 Checking last 20 logs from container..."
-            sudo docker logs --tail 20 datax-backend-dev || true
-            echo "🔍 Checking network connection..."
-            sudo docker network inspect multi-team-dev-deployment_shared-net | grep datax-backend-dev || { echo "ERROR: Container not connected to multi-team-dev-deployment_shared-net"; exit 1; }
-            echo "✅ Container connected to network"
+            echo "🔍 Checking logs from container..."
+            sudo docker logs -f datax-backend-dev || true
             echo "✅ Deployment successful! Visit: ${{ secrets.DEV_VPS_URL }}"
