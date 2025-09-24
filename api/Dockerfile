@@ -1,4 +1,4 @@
-#Dockerfile
+#api\Dockerfile
 
 # Use official Python 3.12 slim image as base
 FROM python:3.12-slim
@@ -21,12 +21,11 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-
-# Copy the application code into the container
-COPY ./api /app
+# Copy the application code from the api directory
+COPY . .
 
 # Expose port 8040
 EXPOSE 8040
 
 # Run the FastAPI app using uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8040"]
+CMD ["uvicorn", "api.app.main:app", "--host", "0.0.0.0", "--port", "8040"]
