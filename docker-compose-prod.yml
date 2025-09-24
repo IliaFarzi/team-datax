@@ -14,5 +14,5 @@ services:
 
 networks:
   prod-net:
-    name: multi-team-prod-deployment_prod-net
+    name: datax_prod-net
     external: true

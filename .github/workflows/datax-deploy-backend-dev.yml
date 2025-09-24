@@ -17,15 +17,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # NEW: Check for file existence in repo
+      - name: Verify docker-compose-dev.yml exists
+        run: |
+          ls -l docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not found in repo"; exit 1; }
+
       - name: Copy files to VPS
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.DEV_VPS_HOST }}
           username: ${{ secrets.DEV_VPS_USERNAME }}
-          port: 32222
+          port: ${{secrets.DEV_VPS_PORT}}
           key: ${{ secrets.DEV_VPS_KEY }}
           source: "docker-compose-dev.yml"
           target: "/home/datax-backend"
+          overwrite: true
+          strip_components: 0
+          debug: true  # NEW: for debugging
+
+      # NEW: Check file copy
+      - name: Verify file copy
+        uses: appleboy/ssh-action@master
+        with: 
+          host: ${{ secrets.DEV_VPS_HOST }}
+          username: ${{ secrets.DEV_VPS_USERNAME }}
+          port: ${{secrets.DEV_VPS_PORT}}
+          key: ${{ secrets.DEV_VPS_KEY }}
+          script: |
+            ls -l /home/datax-backend/docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not copied"; exit 1; }
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -69,6 +88,11 @@ jobs:
           key: ${{ secrets.DEV_VPS_KEY }}
           script: |
             cd /home/datax-backend
+
+            # NEW: File existence check
+            ls -l /home/datax-backend/docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not found"; exit 1; }
+            ls -l /home/datax-backend/.env.datax || { echo "ERROR: .env.datax not found"; exit 1; }
+            
             echo "AUTH_JWT_SECRET=${{ secrets.DEV_AUTH_JWT_SECRET }}" > .env.datax
             echo "AUTH_SESSION_SECRET=${{ secrets.DEV_AUTH_SESSION_SECRET }}" >> .env.datax
 
@@ -111,13 +135,23 @@ jobs:
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
             echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
 
-            # Stop and remove old container if exists
-            docker rm -f datax-backend-dev || true
+            # NEW: Docker login
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
-            # Remove old unused images
+            # NEW: Create network
+            docker network inspect datax_dev-net >/dev/null 2>&1 || docker network create datax_dev-net
+
+            # Stop and remove old
+            docker rm -f datax-backend-dev || true
             docker image prune -af || true
 
-            docker compose -f docker-compose-dev.yml pull 
-            docker compose -f docker-compose-dev.yml up -d 
+            # Pull and up
+            docker compose -f docker-compose-dev.yml pull || { echo "ERROR: Failed to pull"; exit 1; }
+            docker compose -f docker-compose-dev.yml up -d || { echo "ERROR: Failed to up"; exit 1; }
+
+            # NEW: Check status and logs
+            sleep 5
+            docker ps -a | grep datax-backend-dev || { echo "ERROR: Container not running"; exit 1; }
+            docker logs datax-backend-dev --tail 50
 
             echo "✅ Deployment successful! Visit: ${{ secrets.DEV_VPS_URL }}"
