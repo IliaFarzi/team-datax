@@ -16,10 +16,10 @@ WORKDIR /app
 RUN pip install --upgrade pip
 
 # Copy requirements.txt first (to leverage Docker cache)
-COPY .api/requirements.txt .
+COPY api/requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r api/requirements.txt
 
 # Copy the application code from the api directory
 COPY . .
