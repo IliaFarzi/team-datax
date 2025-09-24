@@ -72,11 +72,23 @@ jobs:
     needs: build_and_push
     runs-on: ubuntu-latest
     steps:
-      
+
+      - name: Re-checkout code
+        uses: actions/checkout@v4
+
+      - name: Debug GITHUB_WORKSPACE
+        run: |
+          echo "GITHUB_WORKSPACE is set to: $GITHUB_WORKSPACE"
+          if [ -z "$GITHUB_WORKSPACE" ]; then
+            echo "ERROR: GITHUB_WORKSPACE is not set"
+            exit 1
+          fi
+
       - name: Debug check docker-compose-dev.yml path
         run: |
-         echo "Workspace: $GITHUB_WORKSPACE"
-         ls -l $GITHUB_WORKSPACE/docker-compose-dev.yml
+          echo "Workspace: $GITHUB_WORKSPACE"
+          ls -l $GITHUB_WORKSPACE
+          ls -l $GITHUB_WORKSPACE/docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not found"; exit 1; }
         
 
       - name: Copy docker compose file to VPS
@@ -101,6 +113,8 @@ jobs:
             echo "🔍 Checking copied docker-compose-dev.yml on VPS..."
             sudo ls -l /home/datax-backend/docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not copied to /home/datax-backend"; exit 1; }
             echo "✅ docker-compose-dev.yml copied successfully"
+            echo "🔍 File content:"
+            sudo cat /home/datax-backend/docker-compose-dev.yml
             
             cd /home/datax-backend
 
