@@ -24,7 +24,7 @@ jobs:
           echo "✅ docker-compose-dev.yml found"
 
       - name: Copy files to VPS
-        uses: appleboy/scp-action@master
+        uses: appleboy/scp-action@v0.1.7  # change to stable version
         with:
           host: ${{ secrets.DEV_VPS_HOST }}
           username: ${{ secrets.DEV_VPS_USERNAME }}
@@ -37,13 +37,12 @@ jobs:
           debug: true
 
       - name: Verify file copy on VPS
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.3  # change to stable version
         with: 
           host: ${{ secrets.DEV_VPS_HOST }}
           username: ${{ secrets.DEV_VPS_USERNAME }}
           port: ${{ secrets.DEV_VPS_PORT }}
           key: ${{ secrets.DEV_VPS_KEY }}
-          capture_stdout: true
           script: |
             echo "🔍 Checking copied docker-compose-dev.yml on VPS..."
             sudo ls -l /home/datax-backend/docker-compose-dev.yml || { echo "ERROR: docker-compose-dev.yml not copied to /home/datax-backend"; exit 1; }
@@ -91,13 +90,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to VPS
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.3  # change to stable version
         with:
           host: ${{ secrets.DEV_VPS_HOST }}
           username: ${{ secrets.DEV_VPS_USERNAME }}
           port: ${{ secrets.DEV_VPS_PORT }}
           key: ${{ secrets.DEV_VPS_KEY }}
-          capture_stdout: true
           script: |
             cd /home/datax-backend
 
@@ -109,42 +107,42 @@ jobs:
 
             # Overwrite .env.datax
             echo "🔍 Writing .env.datax..."
-            sudo bash -c 'echo "AUTH_JWT_SECRET=${{ secrets.DEV_AUTH_JWT_SECRET }}" > .env.datax'
-            sudo bash -c 'echo "AUTH_SESSION_SECRET=${{ secrets.DEV_AUTH_SESSION_SECRET }}" >> .env.datax'
-            sudo bash -c 'echo "DB_MONGO_URI=mongodb://Muhammad:CIHTS99FV@mongo:27017/datax" >> .env.datax'
-            sudo bash -c 'echo "DB_MONGO_NAME=${{ secrets.DEV_DB_MONGO_NAME }}" >> .env.datax'
-            sudo bash -c 'echo "DB_MONGO_COLLECTION_CHAT_SESSIONS=${{ secrets.DEV_DB_MONGO_COLLECTION_CHAT_SESSIONS }}" >> .env.datax'
-            sudo bash -c 'echo "DB_MONGO_COLLECTION_USERS=${{ secrets.DEV_DB_MONGO_COLLECTION_USERS }}" >> .env.datax'
-            sudo bash -c 'echo "STORAGE_MINIO_ENDPOINT=minio:9000" >> .env.datax'
-            sudo bash -c 'echo "STORAGE_MINIO_ACCESS_KEY=${{ secrets.DEV_STORAGE_MINIO_USERNAME }}" >> .env.datax'
-            sudo bash -c 'echo "STORAGE_MINIO_SECRET_KEY=${{ secrets.DEV_STORAGE_MINIO_PASSWORD }}" >> .env.datax'
-            sudo bash -c 'echo "STORAGE_MINIO_SECURE=${{ secrets.DEV_STORAGE_MINIO_SECURE }}" >> .env.datax'
-            sudo bash -c 'echo "STORAGE_MINIO_BUCKET_SHEETS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_SHEETS }}" >> .env.datax'
-            sudo bash -c 'echo "STORAGE_MINIO_BUCKET_UPLOADS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_UPLOADS }}" >> .env.datax'
-            sudo bash -c 'echo "AUTH_GOOGLE_CLIENT_ID=${{ secrets.DEV_AUTH_GOOGLE_CLIENT_ID }}" >> .env.datax'
-            sudo bash -c 'echo "AUTH_GOOGLE_CLIENT_SECRET=${{ secrets.DEV_AUTH_GOOGLE_CLIENT_SECRET }}" >> .env.datax'
-            sudo bash -c 'echo "AUTH_GOOGLE_PROJECT_ID=${{ secrets.DEV_AUTH_GOOGLE_PROJECT_ID }}" >> .env.datax'
-            sudo bash -c 'echo "AUTH_GOOGLE_URI_AUTH=${{ secrets.DEV_AUTH_GOOGLE_URI_AUTH }}" >> .env.datax'
-            sudo bash -c 'echo "AUTH_GOOGLE_URI_TOKEN=${{ secrets.DEV_AUTH_GOOGLE_URI_TOKEN }}" >> .env.datax'
-            sudo bash -c 'echo "AUTH_GOOGLE_URI_CERTS=${{ secrets.DEV_AUTH_GOOGLE_URI_CERTS }}" >> .env.datax'
-            sudo bash -c 'echo "MAIL_SMTP_HOST=${{ secrets.DEV_MAIL_SMTP_HOST }}" >> .env.datax'
-            sudo bash -c 'echo "MAIL_SMTP_PORT=${{ secrets.DEV_MAIL_SMTP_PORT }}" >> .env.datax'
-            sudo bash -c 'echo "MAIL_SMTP_USER=${{ secrets.DEV_MAIL_SMTP_USER }}" >> .env.datax'
-            sudo bash -c 'echo "MAIL_SMTP_PASSWORD=${{ secrets.DEV_MAIL_SMTP_PASSWORD }}" >> .env.datax'
-            sudo bash -c 'echo "MAIL_FROM_NAME=${{ secrets.DEV_MAIL_FROM_NAME }}" >> .env.datax'
-            sudo bash -c 'echo "MAIL_FROM_ADDRESS=${{ secrets.DEV_MAIL_FROM_ADDRESS }}" >> .env.datax'
-            sudo bash -c 'echo "LLM_OPENROUTER_API_BASE=${{ secrets.DEV_LLM_OPENROUTER_API_BASE }}" >> .env.datax'
-            sudo bash -c 'echo "LLM_OPENROUTER_API_KEY=${{ secrets.DEV_LLM_OPENROUTER_API_KEY }}" >> .env.datax'
-            sudo bash -c 'echo "MODEL_NAME=${{ secrets.DEV_MODEL_NAME }}" >> .env.datax'
-            sudo bash -c 'echo "FRONTEND_URL=${{ secrets.DEV_FRONTEND_URL }}" >> .env.datax'
-            sudo bash -c 'echo "VPS_URL=${{ secrets.DEV_VPS_URL }}" >> .env.datax'
-            sudo bash -c 'echo "VPS_HOST=${{ secrets.DEV_VPS_HOST }}" >> .env.datax'
-            sudo bash -c 'echo "VPS_USERNAME=${{ secrets.DEV_VPS_USERNAME }}" >> .env.datax'
-            sudo bash -c 'echo "VPS_PORT=${{ secrets.DEV_VPS_PORT }}" >> .env.datax'
-            sudo bash -c 'echo "CORS_CONNECTION=${{ secrets.DEV_CORS_CONNECTION }}" >> .env.datax'
-            sudo bash -c 'echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax'
-            sudo bash -c 'echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax'
-            sudo bash -c 'cat .env.datax'  # Debug: Show env file content
+            sudo bash -c "echo 'AUTH_JWT_SECRET=${{ secrets.DEV_AUTH_JWT_SECRET }}' > .env.datax"
+            sudo bash -c "echo 'AUTH_SESSION_SECRET=${{ secrets.DEV_AUTH_SESSION_SECRET }}' >> .env.datax"
+            sudo bash -c "echo 'DB_MONGO_URI=mongodb://Muhammad:CIHTS99FV@mongo:27017/datax' >> .env.datax"
+            sudo bash -c "echo 'DB_MONGO_NAME=${{ secrets.DEV_DB_MONGO_NAME }}' >> .env.datax"
+            sudo bash -c "echo 'DB_MONGO_COLLECTION_CHAT_SESSIONS=${{ secrets.DEV_DB_MONGO_COLLECTION_CHAT_SESSIONS }}' >> .env.datax"
+            sudo bash -c "echo 'DB_MONGO_COLLECTION_USERS=${{ secrets.DEV_DB_MONGO_COLLECTION_USERS }}' >> .env.datax"
+            sudo bash -c "echo 'STORAGE_MINIO_ENDPOINT=minio:9000' >> .env.datax"
+            sudo bash -c "echo 'STORAGE_MINIO_ACCESS_KEY=${{ secrets.DEV_STORAGE_MINIO_USERNAME }}' >> .env.datax"
+            sudo bash -c "echo 'STORAGE_MINIO_SECRET_KEY=${{ secrets.DEV_STORAGE_MINIO_PASSWORD }}' >> .env.datax"
+            sudo bash -c "echo 'STORAGE_MINIO_SECURE=${{ secrets.DEV_STORAGE_MINIO_SECURE }}' >> .env.datax"
+            sudo bash -c "echo 'STORAGE_MINIO_BUCKET_SHEETS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_SHEETS }}' >> .env.datax"
+            sudo bash -c "echo 'STORAGE_MINIO_BUCKET_UPLOADS=${{ secrets.DEV_STORAGE_MINIO_BUCKET_UPLOADS }}' >> .env.datax"
+            sudo bash -c "echo 'AUTH_GOOGLE_CLIENT_ID=${{ secrets.DEV_AUTH_GOOGLE_CLIENT_ID }}' >> .env.datax"
+            sudo bash -c "echo 'AUTH_GOOGLE_CLIENT_SECRET=${{ secrets.DEV_AUTH_GOOGLE_CLIENT_SECRET }}' >> .env.datax"
+            sudo bash -c "echo 'AUTH_GOOGLE_PROJECT_ID=${{ secrets.DEV_AUTH_GOOGLE_PROJECT_ID }}' >> .env.datax"
+            sudo bash -c "echo 'AUTH_GOOGLE_URI_AUTH=${{ secrets.DEV_AUTH_GOOGLE_URI_AUTH }}' >> .env.datax"
+            sudo bash -c "echo 'AUTH_GOOGLE_URI_TOKEN=${{ secrets.DEV_AUTH_GOOGLE_URI_TOKEN }}' >> .env.datax"
+            sudo bash -c "echo 'AUTH_GOOGLE_URI_CERTS=${{ secrets.DEV_AUTH_GOOGLE_URI_CERTS }}' >> .env.datax"
+            sudo bash -c "echo 'MAIL_SMTP_HOST=${{ secrets.DEV_MAIL_SMTP_HOST }}' >> .env.datax"
+            sudo bash -c "echo 'MAIL_SMTP_PORT=${{ secrets.DEV_MAIL_SMTP_PORT }}' >> .env.datax"
+            sudo bash -c "echo 'MAIL_SMTP_USER=${{ secrets.DEV_MAIL_SMTP_USER }}' >> .env.datax"
+            sudo bash -c "echo 'MAIL_SMTP_PASSWORD=${{ secrets.DEV_MAIL_SMTP_PASSWORD }}' >> .env.datax"
+            sudo bash -c "echo 'MAIL_FROM_NAME=${{ secrets.DEV_MAIL_FROM_NAME }}' >> .env.datax"
+            sudo bash -c "echo 'MAIL_FROM_ADDRESS=${{ secrets.DEV_MAIL_FROM_ADDRESS }}' >> .env.datax"
+            sudo bash -c "echo 'LLM_OPENROUTER_API_BASE=${{ secrets.DEV_LLM_OPENROUTER_API_BASE }}' >> .env.datax"
+            sudo bash -c "echo 'LLM_OPENROUTER_API_KEY=${{ secrets.DEV_LLM_OPENROUTER_API_KEY }}' >> .env.datax"
+            sudo bash -c "echo 'MODEL_NAME=${{ secrets.DEV_MODEL_NAME }}' >> .env.datax"
+            sudo bash -c "echo 'FRONTEND_URL=${{ secrets.DEV_FRONTEND_URL }}' >> .env.datax"
+            sudo bash -c "echo 'VPS_URL=${{ secrets.DEV_VPS_URL }}' >> .env.datax"
+            sudo bash -c "echo 'VPS_HOST=${{ secrets.DEV_VPS_HOST }}' >> .env.datax"
+            sudo bash -c "echo 'VPS_USERNAME=${{ secrets.DEV_VPS_USERNAME }}' >> .env.datax"
+            sudo bash -c "echo 'VPS_PORT=${{ secrets.DEV_VPS_PORT }}' >> .env.datax"
+            sudo bash -c "echo 'CORS_CONNECTION=${{ secrets.DEV_CORS_CONNECTION }}' >> .env.datax"
+            sudo bash -c "echo 'DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}' >> .env.datax"
+            sudo bash -c "echo 'DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}' >> .env.datax"
+            sudo cat .env.datax  
             echo "✅ .env.datax written successfully"
 
             # Debug: Verify each env variable exists
@@ -192,7 +190,7 @@ jobs:
 
             # Docker login
             echo "🔍 Logging in to Docker Hub..."
-            sudo bash -c 'echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin' || { echo "ERROR: Docker Hub login failed"; exit 1; }
+            sudo bash -c "echo '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin" || { echo "ERROR: Docker Hub login failed"; exit 1; }
             echo "✅ Docker Hub login successful"
 
             # Ensure network exists
@@ -227,7 +225,7 @@ jobs:
             echo "🔍 Container logs:"
             sudo docker logs datax-backend-dev --tail 50
             echo "🔍 Testing container accessibility..."
-            curl -s -f ${{ secrets.DEV_VPS_HOST }}:8040 || { echo "ERROR: Container not accessible on port 8040"; exit 1; }
+            curl -s -f http://${{ secrets.DEV_VPS_HOST }}:8040 || { echo "ERROR: Container not accessible on port 8040"; exit 1; }
             echo "✅ Container accessible on port 8040"
 
             echo "✅ Deployment successful! Visit: ${{ secrets.DEV_VPS_URL }}"
