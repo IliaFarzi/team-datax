@@ -191,6 +191,4 @@ jobs:
             echo "🔍 Checking container status..."
             sudo docker ps -a | grep datax-backend-dev || { echo "ERROR: Container datax-backend-dev not running";  }
             echo "✅ Container is running"
-            echo "🔍 Checking logs from container..."
-            sudo docker logs -f datax-backend-dev || true
             echo "✅ Deployment successful! Visit: ${{ secrets.DEV_VPS_URL }}"
