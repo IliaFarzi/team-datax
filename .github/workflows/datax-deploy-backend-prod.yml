@@ -22,7 +22,7 @@ jobs:
         run: |
           echo "🔍 Checking for docker-compose-prod.yml in repo..."
           ls -l ./api/docker-compose-prod.yml || { echo "ERROR: docker-compose-prod.yml not found in repo"; }
-          ls -l ./infrastructure/prod-services.yml || { echo "ERROR: prod-services.yml not found in repo"; }
+          ls -l ./api/prod-services.yml || { echo "ERROR: prod-services.yml not found in repo"; }
           echo "✅ docker-compose-prod.yml found"
           echo "✅ prod-services.yml found"
           
@@ -72,7 +72,7 @@ jobs:
           username: ${{ secrets.PROD_VPS_USERNAME }}
           port: ${{ secrets.PROD_VPS_PORT }}
           key: ${{ secrets.PROD_VPS_KEY }}
-          source: "infrastructure/prod-services.yml"
+          source: "api/prod-services.yml"
           target: /home/datax-backend
           debug: true
 
@@ -172,8 +172,8 @@ jobs:
 
             # Deploy services (minio)
             echo "🔍 Deploying services (minio)..."
-            docker compose -f infrastructure/prod-services.yml --env-file .env.datax pull
-            docker compose -f infrastructure/prod-services.yml --env-file .env.datax up -d
+            docker compose -f api/prod-services.yml --env-file .env.datax pull
+            docker compose -f api/prod-services.yml --env-file .env.datax up -d
             echo "✅ minio service launched"
             
             # Pull image
