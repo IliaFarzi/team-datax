@@ -188,7 +188,7 @@ jobs:
 
             # Wait & Check
             echo "🔍 Waiting for container to stabilize..."
-            sleep 20
+            sleep 10
             echo "🔍 Checking container status..."
             sudo docker ps -a | grep datax-backend-prod || { echo "ERROR: Container datax-backend-prod not running";  }
             echo "✅ Container is running"
