@@ -166,12 +166,12 @@ jobs:
             
             # Pull image
             echo "🔍 Pulling Docker image..."
-            sudo docker compose -f ./api//docker-compose-dev.yml pull || { echo "ERROR: Failed to pull image";  }
+            sudo docker compose -f ./docker-compose-dev.yml pull || { echo "ERROR: Failed to pull image";  }
             echo "✅ Image pulled successfully"
 
             # Start container
             echo "🔍 Starting container..."
-            sudo docker compose -f ./api//docker-compose-dev.yml up -d --no-build || { echo "ERROR: Failed to start container";  }
+            sudo docker compose -f ./docker-compose-dev.yml up -d --no-build || { echo "ERROR: Failed to start container";  }
             echo "✅ Container started"
 
             # Wait & Check
