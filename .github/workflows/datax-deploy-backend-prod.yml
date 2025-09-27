@@ -1,4 +1,3 @@
-# .github/workflows/datax-deploy-backend-prod.yml
 name: datax-deploy-backend-prod
 
 on:
@@ -8,35 +7,36 @@ on:
     paths:
       - 'api/**'
       - '.github/workflows/datax-deploy-backend-prod.yml'
-      - 'docker-compose-prod.yml'
+
+env:
+  IMAGE_NAME: datax-backend-prod
 
 jobs:
   build_and_push:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Copy files to VPS
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.PROD_VPS_HOST }}
-          username: ${{ secrets.PROD_VPS_USERNAME }}
-          port: 32222
-          key: ${{ secrets.PROD_VPS_KEY }}
-          source: "docker-compose-prod.yml"
-          target: "/home/datax-backend"
+      - name: Verify docker-compose-.yml exists
+        run: |
+          echo "🔍 Checking for docker-compose-prod.yml in repo..."
+          ls -l docker-compose-prod.yml || { echo "ERROR: docker-compose-prod.yml not found in repo"; }
+          echo "✅ docker-compose-prod.yml found"
+          
+          echo "Host starts with: $(echo "${{ secrets.PROD_VPS_HOST }}" | head -c 8)..."
+          echo "Username starts with: $(echo "${{ secrets.PROD_VPS_USERNAME }}" | head -c 8)..."
+          echo "Key starts with: $(echo "${{ secrets.PROD_VPS_KEY }}" | head -c 20)..."
+
+      - name: Debug workspace files
+        run: |
+          echo "🔍 Listing current workspace files..."
+          pwd
+          ls -lah
+          echo "✅ workspace files found"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-
-      - name: Cache pip packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -44,31 +44,62 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker image
-        id: build
+      - name: Verify Docker Hub login
+        run: |
+          echo "🔍 Verifying Docker Hub login..."
+          docker pull hello-world || { echo "ERROR: Docker Hub login failed";  }
+          echo "✅ Docker Hub login successful"
+
+      - name: Build and push backend image
         uses: docker/build-push-action@v4
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./api
+          file: ./api/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/datax-backend-prod:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
-      - name: Show built image digest
-        run: echo "✅ Prod image digest = ${{ steps.build.outputs.digest }}"
 
   deploy:
     needs: build_and_push
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@master
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Copy prod compose files to VPS
+        uses: appleboy/scp-action@v1
         with:
+          host: ${{ secrets.PROD_VPS_HOST }}
+          username: ${{ secrets.PROD_VPS_USERNAME }}
+          port: ${{ secrets.PROD_VPS_PORT }}
+          key: ${{ secrets.PROD_VPS_KEY }}
+          source: |
+            api/docker-compose-prod.yml
+            infrastructure/prod-services.yml
+          target: /home/datax-backend
+          debug: true
+
+      - name: Deploy backend and services
+        uses: appleboy/ssh-action@v1  
+        with: 
           host: ${{ secrets.PROD_VPS_HOST }}
           username: ${{ secrets.PROD_VPS_USERNAME }}
           port: ${{ secrets.PROD_VPS_PORT }}
           key: ${{ secrets.PROD_VPS_KEY }}
           script: |
             cd /home/datax-backend
+
+            # File checks
+            echo "🔍 Checking files on VPS..."
+            sudo ls -l ./docker-compose-prod.yml || { echo "ERROR: docker-compose-prod.yml not found";  }
+            sudo ls -l ./prod-services.yml || { echo "ERROR: prod-services.yml not found";  }
+            sudo cat docker-compose-prod.yml
+            sudo cat prod-services.yml
+            echo "✅ Files exist
+ 
+            # Overwrite .env.datax
+            echo "🔍 Writing prod .env.datax ..."
+
             echo "AUTH_JWT_SECRET=${{ secrets.PROD_AUTH_JWT_SECRET }}" > .env.datax
             echo "AUTH_SESSION_SECRET=${{ secrets.PROD_AUTH_SESSION_SECRET }}" >> .env.datax
 
@@ -78,8 +109,8 @@ jobs:
             echo "DB_MONGO_COLLECTION_USERS=${{ secrets.PROD_DB_MONGO_COLLECTION_USERS }}" >> .env.datax
 
             echo "STORAGE_MINIO_ENDPOINT=${{ secrets.PROD_STORAGE_MINIO_ENDPOINT }}" >> .env.datax
-            echo "STORAGE_MINIO_ACCESS_KEY=${{ secrets.PROD_STORAGE_MINIO_USERNAME }}" >> .env.datax
-            echo "STORAGE_MINIO_SECRET_KEY=${{ secrets.PROD_STORAGE_MINIO_PASSWORD }}" >> .env.datax
+            echo "STORAGE_MINIO_USERNAME=${{ secrets.PROD_STORAGE_MINIO_USERNAME }}" >> .env.datax
+            echo "STORAGE_MINIO_PASSWORD=${{ secrets.PROD_STORAGE_MINIO_PASSWORD }}" >> .env.datax
             echo "STORAGE_MINIO_SECURE=${{ secrets.PROD_STORAGE_MINIO_SECURE }}" >> .env.datax
             echo "STORAGE_MINIO_BUCKET_SHEETS=${{ secrets.PROD_STORAGE_MINIO_BUCKET_SHEETS }}" >> .env.datax
             echo "STORAGE_MINIO_BUCKET_UPLOADS=${{ secrets.PROD_STORAGE_MINIO_BUCKET_UPLOADS }}" >> .env.datax
@@ -111,53 +142,59 @@ jobs:
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env.datax
             echo "DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}" >> .env.datax
 
-            # Stop and remove old container if exists
-            docker rm -f datax-backend-prod || true
 
-            # Remove old unused images
-            docker image prune -af || true
+            sudo cat .env.datax  
+            echo "✅ .env.datax written successfully"
 
-            docker compose -f docker-compose-prod.yml pull 
-            docker compose -f docker-compose-prod.yml up -d 
-                       
-            echo "✅ Deployment successful! Visit: ${{ secrets.PROD_VPS_URL }}"
+            # Load env file
+            set -o allexport
+            source .env.datax
+            set +o allexport
 
+
+            # Docker login
+            echo "🔍 Logging in to Docker Hub..."
+            echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin || { echo "ERROR: Docker Hub login failed";  }
+            echo "✅ Docker Hub login successful"
+
+
+            # Ensure prod network exists
+            echo "🔍 Ensuring prod network exists..."
+            docker network inspect datax_prod-net >/dev/null 2>&1 || docker network create datax_prod-net
+            echo "✅ Prod network is ready"
+
+            # Stop and remove old container
+            echo "🔍 Stopping and removing old container..."
+            sudo docker rm -f datax-backend-prod || { echo "WARNING: No old container to remove"; }
+            echo "✅ Old container removed"
+
+            # Deploy backend
             
-  # ============================
-  # 3) Deploy Services (MinIO)
-  # ============================
-  deploy_services:
-    runs-on: ubuntu-latest
-    needs: build_and_push
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+            # Pull image
+            echo "🔍 Pulling Docker image..."
+            sudo docker compose -f ./docker-compose-prod.yml pull || { echo "ERROR: Failed to pull image";  }
+            echo "✅ Image pulled successfully"
 
-      - name: Copy prod-services.yml to VPS
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.PROD_VPS_HOST }}
-          username: ${{ secrets.PROD_VPS_USERNAME }}
-          key: ${{ secrets.PROD_VPS_KEY }}
-          port: ${{ secrets.PROD_VPS_PORT }}
-          source: "infrastructure/prod-services.yml"
-          target: "/home/datax-backend"
+            # Start container
+            echo "🔍 Starting container..."
+            sudo docker compose -f ./docker-compose-prod.yml up -d --no-build || { echo "ERROR: Failed to start container";  }
+            echo "✅ Container started"
 
-      - name: Deploy Services to VPS
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PROD_VPS_HOST }}
-          username: ${{ secrets.PROD_VPS_USERNAME }}
-          key: ${{ secrets.PROD_VPS_KEY }}
-          port: ${{ secrets.PROD_VPS_PORT }}
-          timeout: 300s
-          command_timeout: 600s
-          script: |
-            cd /home/datax-backend
+            docker rmi $(docker images ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }} -f 'dangling=true' -q)
+            echo "✅ dangling images cleaned up"
 
-            # Run services using same env file as backend
-            docker compose -f prod-services.yml --env-file .env.datax pull
-            docker compose -f prod-services.yml --env-file .env.datax up -d --no-build
+            # Deploy services (minio)
+            echo "🔍 Deploying services (minio)..."
+            docker compose -f infrastructure/prod-services.yml --env-file .env.datax pull
+            docker compose -f infrastructure/prod-services.yml --env-file .env.datax up -d
+            echo "✅ minio service launched"
 
-            docker system prune -a -f
-            echo " ✅ Services deployed successfully!"
+            # Wait & Check
+            echo "🔍 Waiting for container to stabilize..."
+            sleep 20
+            echo "🔍 Checking container status..."
+            sudo docker ps -a | grep datax-backend-prod || { echo "ERROR: Container datax-backend-prod not running";  }
+            echo "✅ Container is running"
+            echo "🔍 Checking logs from container..."
+            sudo docker logs -f datax-backend-prod || true
+            echo "✅ Deployment successful! Visit: ${{ secrets.prod_VPS_URL }}"

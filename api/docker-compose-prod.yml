@@ -1,4 +1,5 @@
 #docker-compose-prod.yml
+version: "3.9"
 
 services:
   datax-backend:
@@ -12,7 +13,9 @@ services:
     networks:
       - shared-net
 
+
+
 networks:
   shared-net:
-    name: multi-team-dev-deployment_shared-net
+    name: datax_prod-net
     external: true
