@@ -88,11 +88,11 @@ jobs:
 
             # File checks
             echo "🔍 Checking files on VPS..."
-            sudo ls -l ./docker-compose-prod.yml || { echo "ERROR: docker-compose-prod.yml not found";  }
-            sudo ls -l ./prod-services.yml || { echo "ERROR: prod-services.yml not found";  }
-            sudo cat docker-compose-prod.yml
-            sudo cat prod-services.yml
-            echo "✅ Files exist
+            sudo ls -l ./api/docker-compose-prod.yml || { echo "ERROR: docker-compose-prod.yml not found";  }
+            sudo ls -l ./api/prod-services.yml || { echo "ERROR: prod-services.yml not found";  }
+            sudo cat ./api/docker-compose-prod.yml
+            sudo cat ./api/prod-services.yml
+            echo "✅ Files exist"
  
             # Overwrite .env.datax
             echo "🔍 Writing prod .env.datax ..."
@@ -171,19 +171,19 @@ jobs:
             # Deploy backend
 
             # Deploy services (minio)
-            echo "🔍 Deploying services (minio)..."
-            docker compose -f api/prod-services.yml --env-file .env.datax pull
-            docker compose -f api/prod-services.yml --env-file .env.datax up -d
+            docker compose -f ./api/prod-services.yml --env-file .env.datax pull
+            docker compose -f ./api/prod-services.yml --env-file .env.datax up -d
             echo "✅ minio service launched"
             
             # Pull image
             echo "🔍 Pulling Docker image..."
-            sudo docker compose -f ./docker-compose-prod.yml pull || { echo "ERROR: Failed to pull image";  }
+            # Pull image
+            sudo docker compose -f ./api/docker-compose-prod.yml pull || { echo "ERROR: Failed to pull image"; }
             echo "✅ Image pulled successfully"
 
             # Start container
             echo "🔍 Starting container..."
-            sudo docker compose -f ./docker-compose-prod.yml up -d --no-build || { echo "ERROR: Failed to start container";  }
+            sudo docker compose -f ./api/docker-compose-prod.yml up -d --no-build || { echo "ERROR: Failed to start container"; }
             echo "✅ Container started"
 
             # Wait & Check
