@@ -18,14 +18,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Verify docker-compose-.yml exists
+      - name: Verify docker-compose-prod.yml exists
         run: |
           echo "🔍 Checking for docker-compose-prod.yml in repo..."
-          ls -l docker-compose-prod.yml || { echo "ERROR: docker-compose-prod.yml not found in repo"; }
+          ls -l ./api/docker-compose-prod.yml || { echo "ERROR: docker-compose-prod.yml not found in repo"; }
+          ls -l ./api/prod-services.yml || { echo "ERROR: prod-services.yml not found in repo"; }
           echo "✅ docker-compose-prod.yml found"
+          echo "✅ prod-services.yml found"
           
-          echo "Host starts with: $(echo "${{ secrets.PROD_VPS_HOST }}" | head -c 8)..."
-          echo "Username starts with: $(echo "${{ secrets.PROD_VPS_USERNAME }}" | head -c 8)..."
+          echo "Host starts with: $(echo "${{ secrets.PROD_VPS_HOST }}" | head -c 20)..."
+          echo "Username starts with: $(echo "${{ secrets.PROD_VPS_USERNAME }}" | head -c 20)..."
           echo "Key starts with: $(echo "${{ secrets.PROD_VPS_KEY }}" | head -c 20)..."
 
       - name: Set up Docker Buildx
@@ -52,16 +54,25 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Copy prod compose files to VPS
+      - name: Copy docker-compose-prod.yml to VPS
         uses: appleboy/scp-action@v1
         with:
           host: ${{ secrets.PROD_VPS_HOST }}
           username: ${{ secrets.PROD_VPS_USERNAME }}
           port: ${{ secrets.PROD_VPS_PORT }}
           key: ${{ secrets.PROD_VPS_KEY }}
-          source: |
-            api/docker-compose-prod.yml
-            infrastructure/prod-services.yml
+          source: "api/docker-compose-prod.yml"
+          target: /home/datax-backend
+          debug: true
+
+      - name: Copy prod-services.yml to VPS
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.PROD_VPS_HOST }}
+          username: ${{ secrets.PROD_VPS_USERNAME }}
+          port: ${{ secrets.PROD_VPS_PORT }}
+          key: ${{ secrets.PROD_VPS_KEY }}
+          source: "api/prod-services.yml"
           target: /home/datax-backend
           debug: true
 
@@ -161,8 +172,8 @@ jobs:
 
             # Deploy services (minio)
             echo "🔍 Deploying services (minio)..."
-            docker compose -f infrastructure/prod-services.yml --env-file .env.datax pull
-            docker compose -f infrastructure/prod-services.yml --env-file .env.datax up -d
+            docker compose -f api/prod-services.yml --env-file .env.datax pull
+            docker compose -f api/prod-services.yml --env-file .env.datax up -d
             echo "✅ minio service launched"
             
             # Pull image
@@ -177,7 +188,7 @@ jobs:
 
             # Wait & Check
             echo "🔍 Waiting for container to stabilize..."
-            sleep 20
+            sleep 10
             echo "🔍 Checking container status..."
             sudo docker ps -a | grep datax-backend-prod || { echo "ERROR: Container datax-backend-prod not running";  }
             echo "✅ Container is running"
