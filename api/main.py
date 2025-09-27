@@ -7,10 +7,10 @@ from starlette.middleware.sessions import SessionMiddleware
 from dotenv import load_dotenv
 import os
 
-from api.app.chat_router import chat_router
-from api.app.auth_router import auth_router
-from api.app.upload_router import upload_router
-from api.app.download_router import file_router
+from app.chat_router import chat_router
+from app.auth_router import auth_router
+from app.upload_router import upload_router
+from app.download_router import file_router
 
 load_dotenv(".env")
 

@@ -1,9 +1,10 @@
-#Dockerfile
-
 # Use official Python 3.12 slim image as base
 FROM python:3.12-slim
 
-# curl install
+# Install system dependencies (if needed, e.g., for curl)
+RUN apt-get update && apt-get install -y --no-install-recommends curl && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Google API dependencies
 RUN pip install --no-cache-dir --upgrade google-auth google-auth-oauthlib google-api-python-client
 
 # Set the working directory inside the container
@@ -18,11 +19,11 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the application code into the container
-COPY ./api ./api
+# Copy all code into /api
+COPY . .
 
 # Expose port 8040
 EXPOSE 8040
 
 # Run the FastAPI app using uvicorn
-CMD ["uvicorn", "api.app.main:app", "--host", "0.0.0.0", "--port", "8040"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8040"]

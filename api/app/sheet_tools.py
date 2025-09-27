@@ -10,8 +10,8 @@ import pandas as pd
 
 from fastapi import APIRouter, Request
 
-from api.app.database import get_minio_client, STORAGE_MINIO_BUCKET_SHEETS
-from api.app.database import ensure_mongo_collections
+from .database import get_minio_client, STORAGE_MINIO_BUCKET_SHEETS
+from .database import ensure_mongo_collections
 
 client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
 

@@ -1,8 +1,9 @@
+#docker-compose-dev.yml
+
 services:
   datax-backend:
-    image: heidarym78/datax-backend:latest
-    container_name: datax-backend
-    restart: always
+    image: heidarym78/datax-backend-dev:latest
+    container_name: datax-backend-dev
     ports:
       - "8040:8040"
     env_file:

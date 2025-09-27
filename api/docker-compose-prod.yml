@@ -1,0 +1,21 @@
+#docker-compose-prod.yml
+version: "3.9"
+
+services:
+  datax-backend:
+    image: heidarym78/datax-backend-prod:latest
+    container_name: datax-backend-prod
+    restart: always
+    ports:
+      - "8040:8040"
+    env_file:
+      - .env.datax
+    networks:
+      - shared-net
+
+
+
+networks:
+  shared-net:
+    name: datax_prod-net
+    external: true

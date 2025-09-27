@@ -1,8 +1,5 @@
+# infrastructure\prod-services.yml
 version: "3.9"
-
-volumes:
-  minio_data:
-    driver: local
 
 services:
   minio:
@@ -24,8 +21,19 @@ services:
         limits:
           cpus: "1.0"
           memory: 5G
+    networks:
+      - shared-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
       timeout: 10s
       retries: 5
+
+volumes:
+  minio_data:
+   driver: local
+
+networks:
+  shared-net:
+    name: datax_prod-net
+    external: true

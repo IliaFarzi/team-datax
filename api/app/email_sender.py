@@ -1,4 +1,4 @@
-#api.app.email_sender.py
+#.email_sender.py
 import smtplib
 import os
 from dotenv import load_dotenv
