@@ -46,12 +46,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Verify Docker Hub login
-        run: |
-          echo "🔍 Verifying Docker Hub login..."
-          docker pull hello-world || { echo "ERROR: Docker Hub login failed";  }
-          echo "✅ Docker Hub login successful"
-
       - name: Build and push backend image
         uses: docker/build-push-action@v4
         with:
@@ -171,6 +165,11 @@ jobs:
             echo "🔍 Stopping and removing old container..."
             sudo docker rm -f datax-backend-dev || { echo "WARNING: No old container to remove"; }
             echo "✅ Old container removed"
+
+            docker rmi $(docker images ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }} -f 'dangling=true' -q)
+            echo "✅ dangling images cleaned up"
+
+            # Deploy backend
             
             # Pull image
             echo "🔍 Pulling Docker image..."
@@ -181,9 +180,6 @@ jobs:
             echo "🔍 Starting container..."
             sudo docker compose -f ./docker-compose-dev.yml up -d --no-build || { echo "ERROR: Failed to start container";  }
             echo "✅ Container started"
-
-            docker rmi $(docker images ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }} -f 'dangling=true' -q)
-            echo "✅ dangling images cleaned up"
 
             # Wait & Check
             echo "🔍 Waiting for container to stabilize..."
