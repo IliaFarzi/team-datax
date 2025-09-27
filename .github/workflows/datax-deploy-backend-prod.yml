@@ -28,13 +28,6 @@ jobs:
           echo "Username starts with: $(echo "${{ secrets.PROD_VPS_USERNAME }}" | head -c 8)..."
           echo "Key starts with: $(echo "${{ secrets.PROD_VPS_KEY }}" | head -c 20)..."
 
-      - name: Debug workspace files
-        run: |
-          echo "🔍 Listing current workspace files..."
-          pwd
-          ls -lah
-          echo "✅ workspace files found"
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -165,6 +158,12 @@ jobs:
             echo "✅ dangling images cleaned up"
 
             # Deploy backend
+
+            # Deploy services (minio)
+            echo "🔍 Deploying services (minio)..."
+            docker compose -f infrastructure/prod-services.yml --env-file .env.datax pull
+            docker compose -f infrastructure/prod-services.yml --env-file .env.datax up -d
+            echo "✅ minio service launched"
             
             # Pull image
             echo "🔍 Pulling Docker image..."
@@ -175,12 +174,6 @@ jobs:
             echo "🔍 Starting container..."
             sudo docker compose -f ./docker-compose-prod.yml up -d --no-build || { echo "ERROR: Failed to start container";  }
             echo "✅ Container started"
-
-            # Deploy services (minio)
-            echo "🔍 Deploying services (minio)..."
-            docker compose -f infrastructure/prod-services.yml --env-file .env.datax pull
-            docker compose -f infrastructure/prod-services.yml --env-file .env.datax up -d
-            echo "✅ minio service launched"
 
             # Wait & Check
             echo "🔍 Waiting for container to stabilize..."
