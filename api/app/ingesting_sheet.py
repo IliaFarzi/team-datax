@@ -7,20 +7,18 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from minio.error import S3Error
-from .database import ensure_mongo_collections, get_minio_client, ensure_bucket, minio_file_url
+from .database import ensure_mongo_collections, get_minio_client, ensure_bucket, minio_file_url, STORAGE_MINIO_BUCKET_SHEETS
 
 logger = logging.getLogger(__name__)
 
-STORAGE_MINIO_BUCKET_SHEET= os.getenv("STORAGE_MINIO_BUCKET_SHEET")
-
-client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
+client, db, chat_sessions_collection, users_collection, sessions_collection ,billing_collection = ensure_mongo_collections()
 
 def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame) -> Dict[str, Any]:
     """
     Storing CSV in MinIO, storing metadata in Mongo
     """
     minio_client = get_minio_client()
-    ensure_bucket(minio_client, STORAGE_MINIO_BUCKET_SHEET)
+    ensure_bucket(minio_client, STORAGE_MINIO_BUCKET_SHEETS)
 
     # Save CSV temporarily
     with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
@@ -29,8 +27,8 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
 
     object_name = f"{user_id}/{sheet_id}.csv"
     try:
-        minio_client.fput_object(STORAGE_MINIO_BUCKET_SHEET, object_name, csv_path)
-        logger.info(f"✅ Uploaded {object_name} to MinIO bucket {STORAGE_MINIO_BUCKET_SHEET}")
+        minio_client.fput_object(STORAGE_MINIO_BUCKET_SHEETS, object_name, csv_path)
+        logger.info(f"✅ Uploaded {object_name} to MinIO bucket {STORAGE_MINIO_BUCKET_SHEETS}")
     except S3Error as e:
         os.remove(csv_path)
         logger.error(f"❌ MinIO upload failed: {e}")
@@ -41,14 +39,14 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
         except Exception:
             pass
 
-    file_url = minio_file_url(STORAGE_MINIO_BUCKET_SHEET, object_name)
+    file_url = minio_file_url(STORAGE_MINIO_BUCKET_SHEETS, object_name)
 
-    # Mongo metadata (بدون embedding_success)
+    # Mongo metadata 
     meta = {
         "owner_id": user_id,
         "sheet_id": sheet_id,
         "sheet_name": sheet_name,
-        "bucket": STORAGE_MINIO_BUCKET_SHEET,
+        "bucket": STORAGE_MINIO_BUCKET_SHEETS,
         "object_name": object_name,
         "filename": f"{sheet_id}.csv",
         "file_url": file_url,

@@ -12,7 +12,7 @@ from .database import ensure_mongo_collections, get_minio_client, STORAGE_MINIO_
 
 load_dotenv(".env")
 
-client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
+client, db, chat_sessions_collection, users_collection, sessions_collection ,billing_collection = ensure_mongo_collections()
 logger = logging.getLogger(__name__)
 
 upload_router = APIRouter(prefix="/upload", tags=["File Upload to Minio"])
