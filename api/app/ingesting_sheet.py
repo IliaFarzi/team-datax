@@ -11,7 +11,7 @@ from .database import ensure_mongo_collections, get_minio_client, ensure_bucket,
 
 logger = logging.getLogger(__name__)
 
-client, db, chat_sessions_collection, users_collection, sessions_collection ,billing_collection = ensure_mongo_collections()
+client, db, chat_collection, users_collection, sessions_collection ,billing_collection = ensure_mongo_collections()
 
 def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame) -> Dict[str, Any]:
     """

@@ -9,7 +9,7 @@ from .database import ensure_mongo_collections
 
 load_dotenv('.env')
 
-client, db, chat_sessions_collection, users_collection, sessions_collection, billing_collection = ensure_mongo_collections()
+client, db, chat_collection, users_collection, sessions_collection, billing_collection = ensure_mongo_collections()
 
 WELCOME_MESSAGE = (
     "👋 Welcome! My name is **DATAX**. "

@@ -16,7 +16,7 @@ from .session_manager import initialize_session, get_session
 from .auth_router import get_current_user   # ✅ To extract authenticated user
 
 # Initialize Mongo collections
-client, db, chat_sessions_collection, users_collection, sessions_collection, billing_collection = ensure_mongo_collections()
+client, db, chat_collection, users_collection, sessions_collection, billing_collection = ensure_mongo_collections()
 
 # Create router
 chat_router = APIRouter(prefix="/chat", tags=['Chat with DATAX'])
@@ -36,7 +36,7 @@ def get_chat_history(session_id: str):
     this endpoint is mostly for auditing/debugging.
     """
     try:
-        document = chat_sessions_collection.find_one({"session_id": session_id})
+        document = chat_collection.find_one({"session_id": session_id})
         if document and "messages" in document:
             return document["messages"]
         return []
@@ -64,7 +64,7 @@ def save_message(session_id: str, role: str, content: str, usage: dict = None):
         if usage:
             message_doc["usage"] = usage
 
-        chat_sessions_collection.update_one(
+        chat_collection.update_one(
             {"session_id": session_id},
             {
                 "$push": {"messages": message_doc},
@@ -189,7 +189,7 @@ def send_message(message: UserMessage, request: Request, user=Depends(get_curren
         )
 
         # ✅ Update chat-level stats
-        chat_sessions_collection.update_one(
+        chat_collection.update_one(
             {"session_id": session_id},
             {
                 "$inc": {

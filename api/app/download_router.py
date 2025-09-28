@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 file_router = APIRouter(prefix="/files", tags=["File Download"])
 
-client, db, chat_sessions_collection, users_collection, sessions_collection ,billing_collection = ensure_mongo_collections()
+client, db, chat_collection, users_collection, sessions_collection ,billing_collection = ensure_mongo_collections()
 
 from .database import STORAGE_MINIO_BUCKET_SHEETS, STORAGE_MINIO_BUCKET_UPLOADS
 
