@@ -21,7 +21,6 @@ from dotenv import load_dotenv
 
 
 from .database import ensure_mongo_collections
-from .session_manager import sessions
 from .ingesting_sheet import ingest_sheet
 from .models import SignupIn, LoginIn, VerifyIn, ForgotPasswordIn, CheckCodeIn, ConfirmPasswordIn, ExchangeCodeIn
 from .email_sender import send_otp, send_reset_code
@@ -31,7 +30,7 @@ from .email_sender import send_otp, send_reset_code
 # =========================
 load_dotenv(".env")
 
-client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
+client, db, chat_collection, users_collection, sessions_collection ,billing_collection= ensure_mongo_collections()
 
 # For local testing only. Remove in production.
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "0"
@@ -226,7 +225,6 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
     otp_expires_at = user.get("otp_expires_at")
     if otp_expires_at and not otp_expires_at.tzinfo:
         otp_expires_at = otp_expires_at.replace(tzinfo=timezone.utc)
-        print(f"Converted otp_expires_at to UTC: {otp_expires_at}")  # Debug
 
     if otp_expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="OTP has expired")
@@ -344,8 +342,12 @@ def confirm_password_reset(payload: ConfirmPasswordIn, email: str = Depends(get_
 
     # we check again for more security
     expires_at = user.get("reset_code_expires_at")
+    if expires_at and not expires_at.tzinfo:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
     if not expires_at or expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Reset code expired")
+
 
     # Update password
     users_collection.update_one(
@@ -386,15 +388,26 @@ def connect_google_sheets(user=Depends(get_current_user)):
     
     auth_url, state = flow.authorization_url(prompt="consent",
                                              access_type="offline", # Get refresh_token
-                                             include_granted_scopes='true')# If the user has previously granted permission, use it again
-    sessions[str(user["_id"])] = {"state": state}
+                                             include_granted_scopes='true')# If the user has previously granted permission, use it again)
+    sessions_collection.update_one(
+    {"user_id": str(user["_id"])},
+    {"$set": {
+        "state": state,
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc)
+    }},
+    upsert=True
+        )
 
     return {"auth_url": auth_url, "state": state}
 
 # Code exchange and data storage
 @auth_router.post("/google-sheets/exchange")
 def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_user)):
-    stored_state = sessions.get(str(user["_id"]), {}).get("state")
+    
+    session_doc = sessions_collection.find_one({"user_id": str(user["_id"])})
+    stored_state = session_doc.get("state") if session_doc else None
+
     print("📩 Incoming exchange request")
     print(f"➡️ code: {payload.code}")
     print(f"➡️ state: {payload.state}")
@@ -449,7 +462,7 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
     )
     print("💾 Credentials saved to Mongo")
 
-    # Step 4: Ingest sheets → MinIO + Qdrant
+    # Step 4: Ingest sheets → MinIO 
     try:
         drive = build("drive", "v3", credentials=credentials)
         sheets = drive.files().list(
@@ -495,13 +508,13 @@ def exchange_code_and_ingest(payload: ExchangeCodeIn, user=Depends(get_current_u
             uploaded_to_minio.append(meta)
 
 
-        print(f"📂 Uploaded {len(uploaded_to_minio)} sheets to MinIO + Qdrant")
+        print(f"📂 Uploaded {len(uploaded_to_minio)} sheets to MinIO")
     except Exception as e:
         print(f"❌ Error ingesting sheets: {repr(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to ingest sheets: {e}")
 
     # Clear state after successful exchange
-    sessions.pop(str(user["_id"]), None)
+    sessions_collection.delete_one({"user_id": str(user["_id"])})
 
     return {
         "message": "Google Sheets connected and ingested successfully",
