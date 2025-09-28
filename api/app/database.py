@@ -31,7 +31,7 @@ DB_MONGO_COLLECTION_BILLING = os.getenv('DB_MONGO_COLLECTION_BILLING')
 # Check for MongoDB environment variables
 if not all([DB_MONGO_URI, DB_MONGO_NAME, DB_MONGO_COLLECTION_CHAT, DB_MONGO_COLLECTION_USERS, DB_MONGO_COLLECTION_SESSIONS, DB_MONGO_COLLECTION_BILLING]):
     print("❌ Missing MongoDB environment variables: DB_MONGO_URI, DB_MONGO_NAME, DB_MONGO_COLLECTION_CHAT, DB_MONGO_COLLECTION_USERS, DB_MONGO_COLLECTION_SESSIONS, DB_MONGO_COLLECTION_BILLING")
-    raise ValueError("MongoDB environment variables are not set")
+    raise ValueError("❌ MongoDB environment variables are not set")
 
 def get_mongo_client() -> MongoClient:
     """
