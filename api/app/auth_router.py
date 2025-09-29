@@ -161,6 +161,7 @@ async def signup(payload: SignupIn):
         "otp_expires_at": datetime.now(timezone.utc) + timedelta(minutes=10),
         "otp_attempts": 0,
         "is_verified": False,
+        "can_chat": False,   # new field for waiting list
         "created_at": datetime.now(timezone.utc),
         "last_login": None,
         "google_credentials": None,
@@ -173,8 +174,10 @@ async def signup(payload: SignupIn):
         "message": "Signup successful. An OTP has been sent to your email. Please verify your account.",
         "user_id": str(result.inserted_id),
         "token": token,
-        "token_type": "bearer"
-    }
+        "token_type": "bearer",
+        "is_verified": user_doc["is_verified"],
+        "can_chat": user_doc["can_chat"]   # added for front
+        }
 
     print(success)  # Just logs to console
     return success
@@ -206,7 +209,9 @@ def login(payload: LoginIn):
     "user": {
         "id": str(user["_id"]),
         "email": user["email"],
-        "name": user.get("name")
+        "name": user.get("name"),
+        "is_verified": user.get("is_verified", False),
+        "can_chat": user.get("can_chat", False)   # added for front
     }
     }
     print(success)
@@ -252,6 +257,7 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
         "id": str(user["_id"]),
         "created_at": user.get("created_at"),
         "is_verified": user.get("is_verified"),
+        "can_chat": user.get("can_chat", False)  # added for front
     }
     print(success)
     return success

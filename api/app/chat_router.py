@@ -109,6 +109,13 @@ def send_message(message: UserMessage, request: Request, user=Depends(get_curren
     if not session_doc:
         initialize_session(request, str(user["_id"]))
 
+    # Check if user is allowed to chat
+    if not user.get("can_chat", False):
+        raise HTTPException(
+            status_code=403,
+            detail="You are on the waitlist. Please wait until access is granted."
+        )
+
     # ✅ Rebuild the agent (not persisted in MongoDB, only config is saved)
     from .agent import get_agent
     agent = get_agent(MODEL_NAME, request)
