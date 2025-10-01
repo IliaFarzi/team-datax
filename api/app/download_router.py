@@ -26,7 +26,7 @@ def generate_presigned_url(bucket: str, object_name: str, expiry: int = 3600):
         logger.error(f"❌ Failed to generate presigned URL: {e}")
         raise HTTPException(status_code=500, detail="Could not generate download link")
     
-@file_router.get('/files/download/{filename}')    
+@file_router.get('/download/{filename}')    
 def download_user_file(filename: str, user=Depends(get_current_user)):
     owner_id = str(user["_id"])
     
