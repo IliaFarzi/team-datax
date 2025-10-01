@@ -77,8 +77,7 @@ def save_message(session_id: str, role: str, content: str, usage: dict = None):
                         "total_spent_usd": 0.0,
                     },
                     "timestamps": {
-                        "created_at": datetime.now(timezone.utc),
-                        "updated_at": datetime.now(timezone.utc),
+                        "created_at": datetime.now(timezone.utc)
                     },
                 },
             },
