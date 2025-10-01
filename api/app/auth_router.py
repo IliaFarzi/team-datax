@@ -179,7 +179,7 @@ async def signup(payload: SignupIn):
         "can_chat": user_doc["can_chat"]   # added for front
         }
 
-    print(success)  # Just logs to console
+    
     return success
 
 @auth_router.post("/login")
@@ -209,12 +209,12 @@ def login(payload: LoginIn):
     "user": {
         "id": str(user["_id"]),
         "email": user["email"],
-        "name": user.get("name"),
+        "name": user.get("full_name"),
         "is_verified": user.get("is_verified", False),
         "can_chat": user.get("can_chat", False)   # added for front
     }
     }
-    print(success)
+    
     return success
 
 # =========================
@@ -266,7 +266,7 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
         "is_verified": user.get("is_verified", False),
         "can_chat": user.get("can_chat", False)  # ✅ now correct in response
     }
-    print(success)
+    
     return success
 
 
@@ -301,7 +301,7 @@ def request_password_reset(payload: ForgotPasswordIn):
         "reset_code": reset_code
     }
 
-    print(success)
+    
     return success
 
 
@@ -316,7 +316,10 @@ def check_reset_code(payload: CheckCodeIn, email: str = Depends(get_current_emai
 
     # Expiration check
     expires_at = user.get("reset_code_expires_at")
-    if not expires_at or expires_at < datetime.now(timezone.utc):
+    if expires_at and not expires_at.tzinfo:
+       expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Reset code expired")
 
     # Too many attempts
@@ -342,7 +345,7 @@ def check_reset_code(payload: CheckCodeIn, email: str = Depends(get_current_emai
         "user_id": str(user["_id"]),
         "code" : code}
     
-    print(success)
+    
     return success
 
 # =========================
@@ -385,8 +388,27 @@ def confirm_password_reset(payload: ConfirmPasswordIn, email: str = Depends(get_
         "user_id": str(user["_id"]),
         "new_password" : new_password}
     
-    print(success)
+    
     return success
+
+
+@auth_router.get('/me')
+def get_my_user(user=Depends((get_current_user))):
+    owner_id = user["_id"]
+    print(user)
+    user = users_collection.find_one({"_id": owner_id})
+    print(user)
+
+    success = {
+        "id": str(user["_id"]),
+        "email": user["email"],
+        "name": user.get("full_name"),
+        "is_verified": user.get("is_verified", False),
+        "can_chat": user.get("can_chat", False)   # added for front
+    }
+
+    return success
+
 
 # ==========================================
 # Connect Google Sheets (redirect + callback combined)
