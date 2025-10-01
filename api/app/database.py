@@ -62,8 +62,8 @@ def ensure_mongo_collections() -> tuple:
     db = client[DB_MONGO_NAME]
     chat_collection = db[DB_MONGO_COLLECTION_CHAT]
     users_collection = db[DB_MONGO_COLLECTION_USERS]
-    sessions_collection = db["DB_MONGO_COLLECTION_SESSIONS"]
-    billing_collection = db["DB_MONGO_COLLECTION_BILLING"]
+    sessions_collection = db[DB_MONGO_COLLECTION_SESSIONS]
+    billing_collection = db[DB_MONGO_COLLECTION_BILLING]
     return client, db, chat_collection, users_collection, sessions_collection ,billing_collection
 
 # =========================
