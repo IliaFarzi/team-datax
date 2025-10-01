@@ -241,6 +241,7 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
         users_collection.update_one({"_id": user["_id"]}, {"$inc": {"otp_attempts": 1}})
         raise HTTPException(status_code=400, detail="Invalid verification code")
     
+    # ✅ Update verification status
     users_collection.update_one(
         {"_id": user["_id"]},
         {"$set": {
@@ -249,18 +250,25 @@ def verify_user(payload: VerifyIn, email: str = Depends(get_current_email_from_s
             "otp_attempts": 0
         }}
     )
+
+    # ✅ Re-fetch updated user
+    user = users_collection.find_one({"_id": user["_id"]})
+
+    # Generate a new token
     token = create_access_token({"sub": str(user["_id"])})
+
     success = {
         "message": "Account verified successfully",
         "token": token,
         "email": user.get("email"),
         "id": str(user["_id"]),
         "created_at": user.get("created_at"),
-        "is_verified": user.get("is_verified"),
-        "can_chat": user.get("can_chat", False)  # added for front
+        "is_verified": user.get("is_verified", False),
+        "can_chat": user.get("can_chat", False)  # ✅ now correct in response
     }
     print(success)
     return success
+
 
 # =========================
 # /auth/reset-password/request
