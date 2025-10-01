@@ -16,7 +16,7 @@ from .session_manager import initialize_session, get_session
 from .auth_router import get_current_user   # ✅ To extract authenticated user
 
 # Initialize Mongo collections
-client, db, chat_collection, users_collection, sessions_collection, billing_collection = ensure_mongo_collections()
+client, db, chat_collection, users_collection, sessions_collection, billing_collection, file_collection = ensure_mongo_collections()
 
 # Create router
 chat_router = APIRouter(prefix="/chat", tags=['Chat with DATAX'])

@@ -27,10 +27,11 @@ DB_MONGO_COLLECTION_CHAT = os.getenv("DB_MONGO_COLLECTION_CHAT")
 DB_MONGO_COLLECTION_USERS = os.getenv("DB_MONGO_COLLECTION_USERS")
 DB_MONGO_COLLECTION_SESSIONS = os.getenv('DB_MONGO_COLLECTION_SESSIONS')
 DB_MONGO_COLLECTION_BILLING = os.getenv('DB_MONGO_COLLECTION_BILLING')
+DB_MONGO_COLLECTION_FILE = os.getenv('DB_MONGO_COLLECTION_FILE')
 
 # Check for MongoDB environment variables
-if not all([DB_MONGO_URI, DB_MONGO_NAME, DB_MONGO_COLLECTION_CHAT, DB_MONGO_COLLECTION_USERS, DB_MONGO_COLLECTION_SESSIONS, DB_MONGO_COLLECTION_BILLING]):
-    print("❌ Missing MongoDB environment variables: DB_MONGO_URI, DB_MONGO_NAME, DB_MONGO_COLLECTION_CHAT, DB_MONGO_COLLECTION_USERS, DB_MONGO_COLLECTION_SESSIONS, DB_MONGO_COLLECTION_BILLING")
+if not all([DB_MONGO_URI, DB_MONGO_NAME, DB_MONGO_COLLECTION_CHAT, DB_MONGO_COLLECTION_USERS, DB_MONGO_COLLECTION_SESSIONS, DB_MONGO_COLLECTION_BILLING,DB_MONGO_COLLECTION_FILE]):
+    print("❌ Missing MongoDB environment variables: DB_MONGO_URI, DB_MONGO_NAME, DB_MONGO_COLLECTION_CHAT, DB_MONGO_COLLECTION_USERS, DB_MONGO_COLLECTION_SESSIONS, DB_MONGO_COLLECTION_BILLING,DB_MONGO_COLLECTION_FILE")
     raise ValueError("❌ MongoDB environment variables are not set")
 
 def get_mongo_client() -> MongoClient:
@@ -64,20 +65,22 @@ def ensure_mongo_collections() -> tuple:
     users_collection = db[DB_MONGO_COLLECTION_USERS]
     sessions_collection = db[DB_MONGO_COLLECTION_SESSIONS]
     billing_collection = db[DB_MONGO_COLLECTION_BILLING]
-    return client, db, chat_collection, users_collection, sessions_collection ,billing_collection
+    file_collection = db[DB_MONGO_COLLECTION_FILE]
+    return client, db, chat_collection, users_collection, sessions_collection ,billing_collection,file_collection
 
 # =========================
 # Init check (runs once at import)
 # =========================
 # MongoDB init
-if DB_MONGO_URI and DB_MONGO_NAME and DB_MONGO_COLLECTION_CHAT and DB_MONGO_COLLECTION_USERS and DB_MONGO_COLLECTION_SESSIONS and DB_MONGO_COLLECTION_BILLING:
+if DB_MONGO_URI and DB_MONGO_NAME and DB_MONGO_COLLECTION_CHAT and DB_MONGO_COLLECTION_USERS and DB_MONGO_COLLECTION_SESSIONS and DB_MONGO_COLLECTION_BILLING and DB_MONGO_COLLECTION_FILE:
     print("\n================ MongoDB Connection Debug ================")
     print(f"📌 DB_MONGO_URI: {DB_MONGO_URI[:20]}...")  # Hide sensitive part
     print(f"📌 DB_MONGO_NAME: {DB_MONGO_NAME}")
     print(f"📌 DB_MONGO_COLLECTION_CHAT: {DB_MONGO_COLLECTION_CHAT}")
     print(f"📌 DB_MONGO_COLLECTION_USERS: {DB_MONGO_COLLECTION_USERS}")
     print(f"📌 DB_MONGO_COLLECTION_SESSIONS: {DB_MONGO_COLLECTION_SESSIONS}")
-    print(f"📌 DB_MONGO_COLLECTION_SESSIONS: {DB_MONGO_COLLECTION_BILLING}")
+    print(f"📌 DB_MONGO_COLLECTION_BILLING: {DB_MONGO_COLLECTION_BILLING}")
+    print(f"📌 DB_MONGO_COLLECTION_FILE: {DB_MONGO_COLLECTION_FILE}")
 
     try:
         mongo_client = get_mongo_client()

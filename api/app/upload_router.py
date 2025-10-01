@@ -1,47 +1,60 @@
-#api/app/upload_router.py
-from fastapi import APIRouter, File, UploadFile, HTTPException, Request
-
+# api/app/upload_router.py
+from fastapi import APIRouter, File, UploadFile, HTTPException, Request, Depends, status
 import pandas as pd
 import os
 from dotenv import load_dotenv
 import tempfile
 from datetime import datetime, timezone
 import logging
+from bson import ObjectId  # برای کار با _id در MongoDB
 
 from .database import ensure_mongo_collections, get_minio_client, STORAGE_MINIO_ENDPOINT, STORAGE_MINIO_BUCKET_UPLOADS
+from .auth_router import get_current_user
 
 load_dotenv(".env")
 
-client, db, chat_collection, users_collection, sessions_collection ,billing_collection = ensure_mongo_collections()
+client, db, chat_collection, users_collection, sessions_collection, billing_collection, file_collection = ensure_mongo_collections()
 logger = logging.getLogger(__name__)
 
-upload_router = APIRouter(prefix="/upload", tags=["File Upload to Minio"])
+upload_router = APIRouter(prefix="/files", tags=["File Upload to Minio"])
 
-# api/app/upload_router.py
-@upload_router.post("/")
-async def upload_file(request: Request, file: UploadFile = File(...)):
+@upload_router.post("/upload")
+async def upload_file(request: Request, file: UploadFile = File(...), user=Depends(get_current_user)):
     """Upload any file to MinIO and store metadata in MongoDB."""
     try:
-        google_id = request.session.get("google_id")
-        if not google_id:
-            logger.warning("❌ Upload rejected: user not authenticated")
-            raise HTTPException(status_code=401, detail="User not authenticated")
+        user_id = str(user["_id"])
 
-        logger.info(f"📂 Upload attempt by user={google_id}, file={file.filename}")
-
-        # Save temp
+        # Save temp file
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             tmp.write(await file.read())
             tmp_path = tmp.name
         logger.debug(f"📌 Temp file saved at {tmp_path}")
 
+        # Check file type
+        if not (file.filename.endswith(".csv") or file.filename.endswith(".xlsx")):
+            os.remove(tmp_path)
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Only CSV and Excel (.csv, .xlsx) files are supported."
+            )
+        
+        # Insert base metadata
+        base_metadata = {
+            "user_id": user_id,
+            "filename": file.filename,
+            "bucket": STORAGE_MINIO_BUCKET_UPLOADS,
+            "created_at": datetime.now(timezone.utc)
+        }
+        insert_result = file_collection.insert_one(base_metadata)
+        file_id = insert_result.inserted_id
+
         # Upload to MinIO
-        object_name = f"{google_id}/{file.filename}"
+        object_name = f"{user_id}/{file_id}"
         minio_client = get_minio_client()
         minio_client.fput_object(STORAGE_MINIO_BUCKET_UPLOADS, object_name, tmp_path)
         logger.info(f"✅ File uploaded to MinIO bucket={STORAGE_MINIO_BUCKET_UPLOADS}, object={object_name}")
 
-        # Try read CSV/Excel for metadata (optional)
+        # Try reading file metadata
         rows, columns, headers = None, None, []
         try:
             if file.filename.endswith(".csv"):
@@ -50,8 +63,6 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
             elif file.filename.endswith(".xlsx"):
                 df = pd.read_excel(tmp_path)
                 rows, columns, headers = len(df), len(df.columns), list(df.columns)
-            else:
-                logger.info(f"ℹ️ File {file.filename} is not CSV/Excel → skipping row/column metadata")
         except Exception as e:
             logger.warning(f"⚠️ Could not parse file {file.filename} for metadata: {str(e)}")
 
@@ -60,36 +71,40 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         # File URL
         file_url = f"http://{STORAGE_MINIO_ENDPOINT}/{STORAGE_MINIO_BUCKET_UPLOADS}/{object_name}"
 
-        # Store metadata in MongoDB
-        metadata = {
-            "owner_id": google_id,
-            "filename": file.filename,
-            "object_name": object_name,  # user_id/filename
-            "bucket": STORAGE_MINIO_BUCKET_UPLOADS,
+        # Update metadata in MongoDB
+        update_data = {
+            "object_name": object_name,
             "url": file_url,
             "rows": rows,
             "columns": columns,
             "headers": headers,
             "uploaded_at": datetime.now(timezone.utc)
         }
-        db["uploaded_files"].insert_one(metadata)
+        file_collection.update_one({"_id": file_id}, {"$set": update_data})
 
         logger.info(f"💾 Metadata stored in Mongo for file={file.filename}")
 
         return {
             "message": "File uploaded and metadata stored successfully",
-            "metadata": metadata
+            "file_id": str(file_id),
+            "metadata": update_data
         }
-
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception(f"❌ Upload failed for {file.filename}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # Analyze uploaded CSV/Excel file
-def analyze_uploaded_file(filename: str, user_id: str, operation: str, column: str, value: str | None = None):
+def analyze_uploaded_file(file_id: str, user_id: str, operation: str, column: str, value: str | None = None):
+    file = file_collection.find_one({"_id": ObjectId(file_id)})
+    if not file:
+        raise HTTPException(status_code=404, detail="File not found")
+    filename = file["filename"]
     minio_client = get_minio_client()
-    object_name = f"{user_id}/{filename}"
-    tmp_path = f"/tmp/{filename}"
+    object_name = f"{user_id}/{file_id}"
+    tmp_path = f"/tmp/{file_id}"
 
     try:
         # Download file from MinIO
@@ -107,7 +122,7 @@ def analyze_uploaded_file(filename: str, user_id: str, operation: str, column: s
         if column not in df.columns:
             raise HTTPException(status_code=400, detail=f"Column '{column}' not found in file")
 
-        # Simple operation
+        # Perform operation
         if operation == "sum":
             result = df[column].sum()
         elif operation == "mean":
@@ -127,7 +142,6 @@ def analyze_uploaded_file(filename: str, user_id: str, operation: str, column: s
             "result": result,
             "preview": df.head(5).to_dict(orient="records")
         }
-
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
@@ -135,8 +149,16 @@ def analyze_uploaded_file(filename: str, user_id: str, operation: str, column: s
 
 # List of user uploaded files
 def list_uploaded_files(user_id: str):
-    files = list(db["uploaded_files"].find({"owner_id": user_id}, {"_id": 0}))
+    files = list(file_collection.find({"user_id": user_id}, {"_id": 0}))
     return files
 
+@upload_router.get('/')
+def list_uploaded_files(user=Depends(get_current_user)):
+    user_id = str(user["_id"])
+    files = list(file_collection.find({"user_id": user_id}))
 
-################
+    # همه‌ی _id ها رو به استرینگ تبدیل می‌کنیم
+    for f in files:
+        f["_id"] = str(f["_id"])
+    return files
+
