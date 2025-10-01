@@ -1,5 +1,6 @@
 # api/app/main.py
 from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -11,6 +12,7 @@ from app.chat_router import chat_router
 from app.auth_router import auth_router
 from app.upload_router import upload_router
 from app.download_router import file_router
+from app.billing_router import billing_router
 
 load_dotenv(".env")
 
@@ -20,6 +22,29 @@ FRONTEND_URL = os.getenv("FRONTEND_URL")
 CORS_CONNECTION = os.getenv('CORS_CONNECTION') 
 
 app = FastAPI(title="DATAX", description="API for chat, file upload, Google Sheets integration, and data analysis")
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="DATAX API",
+        version="1.0.0",
+        description="Your API description",
+        routes=app.routes,
+    )
+    openapi_schema["components"]["securitySchemes"] = {
+        "OAuth2PasswordBearer": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT"
+        }
+    }
+    openapi_schema["security"] = [{"OAuth2PasswordBearer": []}]
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
+
 
 
 # ✅ Session middleware 
@@ -45,6 +70,7 @@ app.include_router(auth_router)
 app.include_router(upload_router)
 app.include_router(file_router)
 app.include_router(chat_router)
+app.include_router(billing_router)
 
 @app.get("/")
 def root():

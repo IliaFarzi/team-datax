@@ -99,8 +99,10 @@ jobs:
 
             echo "DB_MONGO_URI=${{ secrets.DEV_DB_MONGO_URI }}" >> .env.datax
             echo "DB_MONGO_NAME=${{ secrets.DEV_DB_MONGO_NAME }}" >> .env.datax
-            echo "DB_MONGO_COLLECTION_CHAT_SESSIONS=${{ secrets.DEV_DB_MONGO_COLLECTION_CHAT_SESSIONS }}" >> .env.datax
+            echo "DB_MONGO_COLLECTION_CHAT=${{ secrets.DEV_DB_MONGO_COLLECTION_CHAT }}" >> .env.datax
             echo "DB_MONGO_COLLECTION_USERS=${{ secrets.DEV_DB_MONGO_COLLECTION_USERS }}" >> .env.datax
+            echo "DB_MONGO_COLLECTION_SESSIONS=${{ secrets.DEV_DB_MONGO_COLLECTION_SESSIONS }}" >> .env.datax
+            echo "DB_MONGO_COLLECTION_BILLING=${{ secrets.DEV_DB_MONGO_COLLECTION_BILLING }}" >> .env.datax
 
             echo "STORAGE_MINIO_ENDPOINT=${{ secrets.DEV_STORAGE_MINIO_ENDPOINT }}" >> .env.datax
             echo "STORAGE_MINIO_USERNAME=${{ secrets.DEV_STORAGE_MINIO_USERNAME }}" >> .env.datax

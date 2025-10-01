@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 file_router = APIRouter(prefix="/files", tags=["File Download"])
 
-client, db, chat_sessions_collection, users_collection = ensure_mongo_collections()
+client, db, chat_collection, users_collection, sessions_collection ,billing_collection = ensure_mongo_collections()
 
 from .database import STORAGE_MINIO_BUCKET_SHEETS, STORAGE_MINIO_BUCKET_UPLOADS
 
@@ -26,7 +26,7 @@ def generate_presigned_url(bucket: str, object_name: str, expiry: int = 3600):
         logger.error(f"❌ Failed to generate presigned URL: {e}")
         raise HTTPException(status_code=500, detail="Could not generate download link")
     
-@file_router.get('/files/download/{filename}')    
+@file_router.get('/download/{filename}')    
 def download_user_file(filename: str, user=Depends(get_current_user)):
     owner_id = str(user["_id"])
     
