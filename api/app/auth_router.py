@@ -30,7 +30,7 @@ from .email_sender import send_otp, send_reset_code
 # =========================
 load_dotenv(".env")
 
-client, db, chat_collection, users_collection, sessions_collection ,billing_collection= ensure_mongo_collections()
+client, db, chat_collection, users_collection, sessions_collection ,billing_collection, file_collection= ensure_mongo_collections()
 
 # For local testing only. Remove in production.
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "0"
@@ -581,12 +581,12 @@ def _refresh_credentials_if_needed(creds_dict: Dict[str, Any]) -> Dict[str, Any]
 # ==========================================
 @auth_router.get("/sheets")
 def list_my_sheets(user=Depends(get_current_user)):
-    owner_id = str(user["_id"])
+    user_id = str(user["_id"])
     google_email = user.get("google_email")
 
     items = list(
         db["spreadsheet_metadata"].find(
-            {"owner_id": owner_id},
+            {"user_id": user_id},
             {"_id": 0}
         )
     )
