@@ -13,7 +13,7 @@ from fastapi import APIRouter, Request
 from .database import get_minio_client, STORAGE_MINIO_BUCKET_SHEETS
 from .database import ensure_mongo_collections
 
-client, db, chat_collection, users_collection, sessions_collection ,billing_collection = ensure_mongo_collections()
+client, db, chat_collection, users_collection, sessions_collection ,billing_collection, file_collection = ensure_mongo_collections()
 
 google_sheets_preview_router = APIRouter(prefix="/sheets", tags=["Google Sheets for tools"])
 
@@ -53,7 +53,7 @@ def safe_numeric(series: pd.Series):
 # List of user saved sheets (from Mongo)
 def list_google_sheets(user_id: str) -> List[Dict[str, str]]:
     sheets = list(db["spreadsheet_metadata"].find(
-        {"owner_id": user_id},
+        {"user_id": user_id},
         {"_id": 0, "sheet_id": 1, "sheet_name": 1}
     ))
     return [{"id": s["sheet_id"], "name": s["sheet_name"]} for s in sheets]

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from .auth_router import get_current_user
 from .database import ensure_mongo_collections
 
-client, db, chat_collection, users_collection, sessions_collection, billing_collection = ensure_mongo_collections()
+client, db, chat_collection, users_collection, sessions_collection, billing_collection, file_collection = ensure_mongo_collections()
 
 billing_router = APIRouter(prefix="/billing", tags=["Billing & Usage"])
 

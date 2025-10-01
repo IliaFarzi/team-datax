@@ -11,7 +11,7 @@ from .database import ensure_mongo_collections, get_minio_client, ensure_bucket,
 
 logger = logging.getLogger(__name__)
 
-client, db, chat_collection, users_collection, sessions_collection ,billing_collection = ensure_mongo_collections()
+client, db, chat_collection, users_collection, sessions_collection ,billing_collection, file_collection = ensure_mongo_collections()
 
 def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame) -> Dict[str, Any]:
     """
@@ -43,7 +43,7 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
 
     # Mongo metadata 
     meta = {
-        "owner_id": user_id,
+        "user_id": user_id,
         "sheet_id": sheet_id,
         "sheet_name": sheet_name,
         "bucket": STORAGE_MINIO_BUCKET_SHEETS,
@@ -57,7 +57,7 @@ def ingest_sheet(user_id: str, sheet_id: str, sheet_name: str, df: pd.DataFrame)
     }
 
     db["spreadsheet_metadata"].update_one(
-        {"owner_id": user_id, "sheet_id": sheet_id},
+        {"user_id": user_id, "sheet_id": sheet_id},
         {"$set": meta},
         upsert=True,
     )
