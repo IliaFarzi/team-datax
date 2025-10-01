@@ -132,7 +132,7 @@ jobs:
             echo "MODEL_NAME=${{ secrets.DEV_MODEL_NAME }}" >> .env.datax
 
             echo "FRONTEND_URL=${{ secrets.DEV_FRONTEND_URL }}" >> .env.datax
-            echo "VPS_URL=${{ secrets.DEV_VPS_URL }}" >> .env.datax
+            echo "FRONTEND_LOCAL_URL=${{ secrets.FRONTEND_LOCAL_URL }}" >> .env.datax
             echo "VPS_HOST=${{ secrets.DEV_VPS_HOST }}" >> .env.datax
             echo "VPS_USERNAME=${{ secrets.DEV_VPS_USERNAME }}" >> .env.datax
             echo "VPS_PORT=${{ secrets.DEV_VPS_PORT }}" >> .env.datax
@@ -184,4 +184,4 @@ jobs:
             echo "🔍 Checking container status..."
             sudo docker ps -a | grep datax-backend-dev || { echo "ERROR: Container datax-backend-dev not running";  }
             echo "✅ Container is running"
-            echo "✅ Deployment successful! Visit: ${{ secrets.DEV_VPS_URL }}"
+            echo "✅ Deployment successful!"
