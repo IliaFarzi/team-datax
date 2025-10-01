@@ -151,3 +151,14 @@ def analyze_uploaded_file(file_id: str, user_id: str, operation: str, column: st
 def list_uploaded_files(user_id: str):
     files = list(file_collection.find({"user_id": user_id}, {"_id": 0}))
     return files
+
+@upload_router.get('/')
+def list_uploaded_files(user=Depends(get_current_user)):
+    user_id = str(user["_id"])
+    files = list(file_collection.find({"user_id": user_id}))
+
+    # همه‌ی _id ها رو به استرینگ تبدیل می‌کنیم
+    for f in files:
+        f["_id"] = str(f["_id"])
+    return files
+
