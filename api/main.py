@@ -17,7 +17,7 @@ from app.billing_router import billing_router
 load_dotenv(".env")
 
 AUTH_SESSION_SECRET = os.getenv("AUTH_SESSION_SECRET")
-VPS_URL=os.getenv('VPS_URL')
+FRONTEND_LOCAL_URL=os.getenv('FRONTEND_LOCAL_URL')
 FRONTEND_URL = os.getenv("FRONTEND_URL")
 CORS_CONNECTION = os.getenv('CORS_CONNECTION') 
 
@@ -59,7 +59,7 @@ app.add_middleware(
 # ✅ CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL, VPS_URL, CORS_CONNECTION],
+    allow_origins=[FRONTEND_URL, FRONTEND_LOCAL_URL, CORS_CONNECTION],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
