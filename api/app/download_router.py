@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 file_router = APIRouter(prefix="/files", tags=["File Download"])
 
-client, db, chat_collection, users_collection, sessions_collection, billing_collection, file_collection = ensure_mongo_collections()
+client, db, chat_collection, users_collection, sessions_collection, billing_collection, file_collection, sheet_collection = ensure_mongo_collections()
 
 def generate_presigned_url(bucket: str, object_name: str, expiry: int = 3600):
     """Generate a presigned URL for downloading from MinIO"""

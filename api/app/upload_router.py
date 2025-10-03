@@ -13,7 +13,7 @@ from .auth_router import get_current_user
 
 load_dotenv(".env")
 
-client, db, chat_collection, users_collection, sessions_collection, billing_collection, file_collection = ensure_mongo_collections()
+client, db, chat_collection, users_collection, sessions_collection, billing_collection, file_collection, sheet_collection = ensure_mongo_collections()
 logger = logging.getLogger(__name__)
 
 upload_router = APIRouter(prefix="/files", tags=["File Upload to Minio"])
