@@ -10,8 +10,7 @@ import os
 
 from app.chat_router import chat_router
 from app.auth_router import auth_router
-from app.upload_router import upload_router
-from app.download_router import file_router
+from app.file_router import file_router
 from app.billing_router import billing_router
 
 load_dotenv(".env")
@@ -67,7 +66,6 @@ app.add_middleware(
 
 # ✅ Register routers
 app.include_router(auth_router)
-app.include_router(upload_router)
 app.include_router(file_router)
 app.include_router(chat_router)
 app.include_router(billing_router)

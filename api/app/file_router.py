@@ -1,24 +1,26 @@
-# api/app/upload_router.py
 from fastapi import APIRouter, File, UploadFile, HTTPException, Request, Depends, status
+
 import pandas as pd
 import os
 from dotenv import load_dotenv
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime, timezone,  timedelta
 import logging
-from bson import ObjectId  # برای کار با _id در MongoDB
+from bson import ObjectId  
+from minio.error import S3Error
 
 from .database import ensure_mongo_collections, get_minio_client, STORAGE_MINIO_ENDPOINT, STORAGE_MINIO_BUCKET_UPLOADS
 from .auth_router import get_current_user
+
 
 load_dotenv(".env")
 
 client, db, chat_collection, users_collection, sessions_collection, billing_collection, file_collection, sheet_collection = ensure_mongo_collections()
 logger = logging.getLogger(__name__)
 
-upload_router = APIRouter(prefix="/files", tags=["File Upload to Minio"])
+file_router = APIRouter(tags=["upload, download and delete in file_collection"])
 
-@upload_router.post("/upload")
+@file_router.post("/upload/files")
 async def upload_file(request: Request, file: UploadFile = File(...), user=Depends(get_current_user)):
     """Upload any file to MinIO and store metadata in MongoDB."""
     try:
@@ -152,7 +154,7 @@ def list_uploaded_files(user_id: str):
     files = list(file_collection.find({"user_id": user_id}, {"_id": 0}))
     return files
 
-@upload_router.get('/')
+@file_router.get('/files')
 def list_uploaded_files(user=Depends(get_current_user)):
     user_id = str(user["_id"])
     files = list(file_collection.find({"user_id": user_id}))
@@ -162,3 +164,99 @@ def list_uploaded_files(user=Depends(get_current_user)):
         f["_id"] = str(f["_id"])
     return files
 
+
+def generate_presigned_url(bucket: str, object_name: str, expiry: int = 3600):
+    """Generate a presigned URL for downloading from MinIO"""
+    minio_client = get_minio_client()
+    try:
+        url = minio_client.presigned_get_object(
+            bucket,
+            object_name,
+            expires=timedelta(seconds=expiry)
+        )
+        return url
+    except Exception as e:
+        logger.error(f"❌ Failed to generate presigned URL: {e}")
+        raise HTTPException(status_code=500, detail="Could not generate download link")
+
+
+@file_router.get('/download/files/{file_id}')
+def download_user_file(file_id: str, user=Depends(get_current_user)):
+    owner_id = str(user["_id"])
+
+    # اول بررسی در دیتابیس
+    file_doc = file_collection.find_one({"_id": ObjectId(file_id), "user_id": owner_id})
+    if not file_doc:
+        raise HTTPException(status_code=404, detail="File not found or access denied")
+
+    object_name = file_doc.get("object_name")
+    bucket = file_doc.get("bucket")
+
+    if not object_name or not bucket:
+        raise HTTPException(status_code=500, detail="File metadata is incomplete")
+
+    # ساخت لینک دانلود موقت
+    url = generate_presigned_url(bucket, object_name)
+    return {"download_url": url}
+
+
+
+
+# Delete a file by ID (MongoDB + MinIO)
+@file_router.delete("/delete/files/{file_id}")
+def delete_file(file_id: str, user=Depends(get_current_user)):
+    """
+    DELETE /files/{file_id}
+    Delete a file by its ID from both MongoDB (file_collection)
+    and MinIO storage. Ensures no partial deletions.
+    """
+    user_id = str(user["_id"])
+    minio_client = get_minio_client()
+
+    # 1️⃣ Find file metadata
+    try:
+        file_doc = file_collection.find_one({"_id": ObjectId(file_id), "user_id": user_id})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid file ID")
+
+    if not file_doc:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    bucket = file_doc.get("bucket")
+    object_name = file_doc.get("object_name")
+
+    if not bucket or not object_name:
+        raise HTTPException(status_code=500, detail="File metadata missing required fields")
+
+    # 2️⃣ Try deleting from MinIO
+    try:
+        minio_client.remove_object(bucket, object_name)
+        minio_deleted = True
+        logger.info(f"✅ Deleted from MinIO: {bucket}/{object_name}")
+    except S3Error as e:
+        logger.warning(f"⚠️ MinIO object not found or already deleted: {e}")
+        minio_deleted = False
+
+    # 3️⃣ Delete from MongoDB
+    try:
+        result = file_collection.delete_one({"_id": ObjectId(file_id), "user_id": user_id})
+        mongo_deleted = result.deleted_count > 0
+    except Exception as e:
+        logger.error(f"❌ MongoDB deletion failed: {e}")
+        mongo_deleted = False
+
+    # 4️⃣ Handle possible partial failures
+    if not mongo_deleted and minio_deleted:
+        raise HTTPException(status_code=500, detail="File deleted from MinIO but not MongoDB (rollback not possible)")
+
+    if not minio_deleted and mongo_deleted:
+        return {
+            "message": "File metadata deleted, but MinIO object was missing",
+            "fileId": file_id,
+            "warning": "MinIO object not found"
+        }
+
+    if mongo_deleted and minio_deleted:
+        return {"message": "File deleted successfully", "fileId": file_id}
+
+    raise HTTPException(status_code=500, detail="File deletion failed unexpectedly")
