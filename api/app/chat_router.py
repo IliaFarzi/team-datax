@@ -16,7 +16,7 @@ from .session_manager import initialize_session, get_session
 from .auth_router import get_current_user   # ✅ To extract authenticated user
 
 # Initialize Mongo collections
-client, db, chat_collection, users_collection, sessions_collection, billing_collection, file_collection = ensure_mongo_collections()
+client, db, chat_collection, users_collection, sessions_collection, billing_collection, file_collection, sheet_collection = ensure_mongo_collections()
 
 # Create router
 chat_router = APIRouter(prefix="/chat", tags=['Chat with DATAX'])
@@ -68,7 +68,6 @@ def save_message(session_id: str, role: str, content: str, usage: dict = None):
             {"session_id": session_id},
             {
                 "$push": {"messages": message_doc},
-                "$set": {"timestamps.updated_at": datetime.now(timezone.utc)},
                 "$setOnInsert": {
                     "session_id": session_id,
                     "stats": {

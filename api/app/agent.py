@@ -18,7 +18,7 @@ from .sheet_tools import (
     load_google_sheet_to_dataframe,
     analyze_google_sheet
 )
-from .upload_router import analyze_uploaded_file, list_uploaded_files
+from .file_router import analyze_uploaded_file, list_uploaded_files
 
 
 def make_wrapped_tools(request: Request):

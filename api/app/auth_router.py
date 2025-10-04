@@ -30,7 +30,7 @@ from .email_sender import send_otp, send_reset_code
 # =========================
 load_dotenv(".env")
 
-client, db, chat_collection, users_collection, sessions_collection ,billing_collection, file_collection= ensure_mongo_collections()
+client, db, chat_collection, users_collection, sessions_collection ,billing_collection, file_collection, sheet_collection= ensure_mongo_collections()
 
 # For local testing only. Remove in production.
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "0"
@@ -585,7 +585,7 @@ def list_my_sheets(user=Depends(get_current_user)):
     google_email = user.get("google_email")
 
     items = list(
-        db["spreadsheet_metadata"].find(
+        sheet_collection.find(
             {"user_id": user_id},
             {"_id": 0}
         )
